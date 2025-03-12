@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35825.156 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnweVolume", "EnweVolume\EnweVolume.csproj", "{1D4A6A1B-E6BB-465D-8F0A-A089184A2DC1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1D4A6A1B-E6BB-465D-8F0A-A089184A2DC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D4A6A1B-E6BB-465D-8F0A-A089184A2DC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D4A6A1B-E6BB-465D-8F0A-A089184A2DC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D4A6A1B-E6BB-465D-8F0A-A089184A2DC1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AF26CE1F-A1A3-406A-9C61-5FC213AA6B29}
+	EndGlobalSection
+EndGlobal
