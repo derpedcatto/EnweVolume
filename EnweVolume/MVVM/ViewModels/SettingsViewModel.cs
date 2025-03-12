@@ -6,6 +6,7 @@ using NAudio.CoreAudioApi;
 using EnweVolume.Core.Enums;
 using EnweVolume.Core.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Windows.Media;
 
 namespace EnweVolume.MVVM.ViewModels;
 
@@ -23,6 +24,9 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private VolumeLevel _volumeCurrentLevel;
+
+    [ObservableProperty]
+    private Brush _volumeBarColor;
 
     [ObservableProperty]
     private float _volumeCurrentValue;
@@ -52,7 +56,25 @@ public partial class SettingsViewModel : ObservableObject
 
     public async Task Initialize()
     {
+        // temp values
+        VolumeYellowThreshold = 0.5f;
+        VolumeRedThreshold = 0.75f;
+    }
 
+    partial void OnVolumeCurrentValueChanged(float oldValue, float newValue)
+    {
+        if (newValue <= VolumeYellowThreshold)
+        {
+            VolumeBarColor = Brushes.Green;
+        }
+        else if (newValue <= VolumeRedThreshold)
+        {
+            VolumeBarColor = Brushes.Yellow;
+        }
+        else
+        {
+            VolumeBarColor = Brushes.Red;
+        }
     }
 }
 

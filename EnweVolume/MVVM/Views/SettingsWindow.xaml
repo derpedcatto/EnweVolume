@@ -7,28 +7,22 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="clr-namespace:EnweVolume.MVVM.ViewModels"
     Title="EnweVolume Settings"
-    Width="500"
-    Height="500"
-    MinWidth="500"
-    MinHeight="500"
+    Width="400"
+    Height="600"
     d:DataContext="{d:DesignInstance Type=viewmodels:SettingsViewModel}"
-    ResizeMode="CanResize"
+    ResizeMode="CanMinimize"
     mc:Ignorable="d">
-    <Grid>
-        <StackPanel
-            Width="400"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center">
-            <TextBlock FontSize="16" Text="Current Volume:" />
-            <TextBlock
-                Margin="0,10,0,0"
-                HorizontalAlignment="Center"
-                Text="{Binding VolumeCurrentLevel, StringFormat={}{0:P0}}" />
-            <ProgressBar
-                Height="20"
-                Margin="0,10,0,0"
-                Maximum="1"
-                Value="{Binding VolumeCurrentLevel}" />
-        </StackPanel>
-    </Grid>
+    <StackPanel Margin="10">
+        <GroupBox Header="Current Volume">
+            <StackPanel>
+                <ProgressBar
+                    Height="20"
+                    Margin="10"
+                    Foreground="{Binding VolumeBarColor}"
+                    Maximum="1"
+                    Minimum="0"
+                    Value="{Binding VolumeCurrentValue}" />
+            </StackPanel>
+        </GroupBox>
+    </StackPanel>
 </Window>
