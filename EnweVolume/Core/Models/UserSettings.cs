@@ -11,6 +11,8 @@ public struct UserSettings
     public bool NotificationYellowPushEnabled { get; set; }
     public bool NotificationYellowSoundEnabled { get; set; }
     public float NotificationYellowSoundVolume { get; set; }
+    public bool ChangeProgressBarColorEnabled { get; set; }
+    public bool StartWithSystemEnabled { get; set; }
     public string CurrentTheme { get; set; }
     public string Locale { get; set; }
 }

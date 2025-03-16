@@ -48,6 +48,8 @@ public class UserSettingsService : IUserSettingsService
             NotificationYellowSoundEnabled = false,
             NotificationYellowSoundVolume = 0.5f,
             CurrentTheme = App.DefaultThemeName,
+            ChangeProgressBarColorEnabled = true,
+            StartWithSystemEnabled = true,
             Locale = appCulture.Name
         };
 
