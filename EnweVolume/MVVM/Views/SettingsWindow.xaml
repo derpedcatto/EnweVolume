@@ -4,17 +4,19 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:EnweVolume.MVVM.Views"
+    xmlns:localconverters="clr-namespace:EnweVolume.Core.Converters"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="clr-namespace:EnweVolume.MVVM.ViewModels"
     Title="EnweVolume Settings"
-    Width="450"
-    Height="1100"
+    Width="475"
+    Height="600"
     MinWidth="450"
     MinHeight="400"
     d:DataContext="{d:DesignInstance Type=viewmodels:SettingsViewModel}"
     ResizeMode="CanResize"
     mc:Ignorable="d">
     <Window.Resources>
+        <localconverters:AndConverter x:Key="AndConverter" />
         <Style TargetType="GroupBox">
             <Setter Property="Padding" Value="10" />
             <Setter Property="Margin" Value="0,0,0,30" />
@@ -73,7 +75,7 @@
                             Grid.Column="1"
                             HorizontalContentAlignment="Center"
                             VerticalContentAlignment="Top"
-                            Content="n" />
+                            Content="{Binding VolumeCurrentValue}" />
                         <Label
                             Grid.Column="2"
                             HorizontalContentAlignment="Right"
@@ -83,8 +85,9 @@
                     <CheckBox
                         Grid.Row="2"
                         Grid.ColumnSpan="3"
-                        VerticalContentAlignment="Center">
-                        <Label Content="Change progress bar color" />
+                        VerticalContentAlignment="Center"
+                        IsChecked="{Binding ChangeBarColor}">
+                        <Label Content="Change bar color" />
                     </CheckBox>
                 </Grid>
             </GroupBox>
@@ -117,7 +120,7 @@
                             Grid.Row="1"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="99" />
+                            Content="{Binding VolumeRedThreshold}" />
                         <Slider
                             Grid.Row="1"
                             Grid.Column="1"
@@ -126,7 +129,7 @@
                             Minimum="1"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="75" />
+                            Value="{Binding VolumeRedThreshold}" />
                     </Grid>
                     <!--  Notification  -->
                     <Grid Grid.Row="1">
@@ -151,14 +154,16 @@
                             Grid.Row="1"
                             Grid.ColumnSpan="3"
                             Margin="0,0,0,5"
-                            VerticalContentAlignment="Center">
+                            VerticalContentAlignment="Center"
+                            IsChecked="{Binding NotificationRedPushEnabled}">
                             <Label Content="Send push notification" />
                         </CheckBox>
                         <CheckBox
                             Grid.Row="2"
                             Grid.ColumnSpan="2"
                             Margin="0,0,0,5"
-                            VerticalContentAlignment="Center">
+                            VerticalContentAlignment="Center"
+                            IsChecked="{Binding NotificationRedSoundEnabled}">
                             <Label Content="Play sound notification" />
                         </CheckBox>
                         <Button
@@ -167,22 +172,24 @@
                             Margin="0,0,0,5"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
-                            Content="Test Volume" />
+                            Content="Test Volume"
+                            IsEnabled="{Binding NotificationRedSoundEnabled}" />
                         <Label
                             Grid.Row="3"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="99" />
+                            Content="{Binding NotificationRedSoundVolume}" />
                         <Slider
                             Grid.Row="3"
                             Grid.Column="1"
                             Grid.ColumnSpan="2"
+                            IsEnabled="{Binding NotificationRedSoundEnabled}"
                             IsSnapToTickEnabled="True"
                             Maximum="100"
                             Minimum="1"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="75" />
+                            Value="{Binding NotificationRedSoundVolume}" />
                     </Grid>
                 </Grid>
             </GroupBox>
@@ -198,7 +205,10 @@
                         <RowDefinition />
                     </Grid.RowDefinitions>
                     <!--  Enable Threshold Checkbox  -->
-                    <CheckBox Margin="0,5,0,20" VerticalContentAlignment="Center">
+                    <CheckBox
+                        Margin="0,5,0,20"
+                        VerticalContentAlignment="Center"
+                        IsChecked="{Binding ThresholdYellowEnabled}">
                         <Label Content="Enable Yellow Threshold" />
                     </CheckBox>
                     <!--  Volume Threshold  -->
@@ -221,16 +231,17 @@
                             Grid.Row="1"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="99" />
+                            Content="{Binding VolumeYellowThreshold}" />
                         <Slider
                             Grid.Row="1"
                             Grid.Column="1"
+                            IsEnabled="{Binding ThresholdYellowEnabled}"
                             IsSnapToTickEnabled="True"
-                            Maximum="100"
-                            Minimum="1"
+                            Maximum="99"
+                            Minimum="0"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="75" />
+                            Value="{Binding VolumeYellowThreshold}" />
                     </Grid>
                     <!--  Notification  -->
                     <Grid Grid.Row="2">
@@ -255,14 +266,18 @@
                             Grid.Row="1"
                             Grid.ColumnSpan="3"
                             Margin="0,0,0,5"
-                            VerticalContentAlignment="Center">
+                            VerticalContentAlignment="Center"
+                            IsChecked="{Binding NotificationYellowPushEnabled}"
+                            IsEnabled="{Binding ThresholdYellowEnabled}">
                             <Label Content="Send push notification" />
                         </CheckBox>
                         <CheckBox
                             Grid.Row="2"
                             Grid.ColumnSpan="2"
                             Margin="0,0,0,5"
-                            VerticalContentAlignment="Center">
+                            VerticalContentAlignment="Center"
+                            IsChecked="{Binding NotificationYellowSoundEnabled}"
+                            IsEnabled="{Binding ThresholdYellowEnabled}">
                             <Label Content="Play sound notification" />
                         </CheckBox>
                         <Button
@@ -271,12 +286,19 @@
                             Margin="0,0,0,5"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
-                            Content="Test Volume" />
+                            Content="Test Volume">
+                            <Button.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AndConverter}">
+                                    <Binding Path="NotificationYellowSoundEnabled" />
+                                    <Binding Path="ThresholdYellowEnabled" />
+                                </MultiBinding>
+                            </Button.IsEnabled>
+                        </Button>
                         <Label
                             Grid.Row="3"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="99" />
+                            Content="{Binding NotificationYellowSoundVolume}" />
                         <Slider
                             Grid.Row="3"
                             Grid.Column="1"
@@ -286,7 +308,14 @@
                             Minimum="1"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="75" />
+                            Value="{Binding NotificationYellowSoundVolume}">
+                            <Slider.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AndConverter}">
+                                    <Binding Path="NotificationYellowSoundEnabled" />
+                                    <Binding Path="ThresholdYellowEnabled" />
+                                </MultiBinding>
+                            </Slider.IsEnabled>
+                        </Slider>
                     </Grid>
                 </Grid>
             </GroupBox>
@@ -297,21 +326,33 @@
                         <RowDefinition />
                         <RowDefinition />
                         <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
                     </Grid.RowDefinitions>
-                    <CheckBox Margin="0,0,0,15" VerticalContentAlignment="Center">
+                    <CheckBox
+                        Margin="0,0,0,20"
+                        VerticalContentAlignment="Center"
+                        IsChecked="{Binding StartWithSystem}">
                         <Label Content="Start with system" />
                     </CheckBox>
-                    <Label Grid.Row="1" Content="App Locale" />
-                    <ComboBox Grid.Row="2" Margin="0,0,0,30">
-                        <ComboBoxItem Content="English" />
-                        <ComboBoxItem Content="Українська" />
-                        <ComboBoxItem Content="Русский" />
-                    </ComboBox>
+                    <Label Grid.Row="1" Content="Current Audio Device" />
+                    <ComboBox
+                        Grid.Row="2"
+                        Margin="0,0,0,20"
+                        ItemsSource="{Binding AudioDeviceNamesList}"
+                        SelectedValue="{Binding AudioDeviceSelected}" />
+                    <Label Grid.Row="3" Content="App Locale" />
+                    <ComboBox
+                        Grid.Row="4"
+                        Margin="0,0,0,30"
+                        ItemsSource="{Binding LocaleList}"
+                        SelectedValue="{Binding LocaleSelected}" />
                     <Button
-                        Grid.Row="3"
+                        Grid.Row="5"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
-                        Content="Theme / Sound Settings" />
+                        Content="Theme / Sound Settings"
+                        IsEnabled="False" />
                 </Grid>
             </GroupBox>
         </StackPanel>

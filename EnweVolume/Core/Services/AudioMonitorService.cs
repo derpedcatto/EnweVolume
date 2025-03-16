@@ -1,5 +1,4 @@
-﻿using EnweVolume.Core.Enums;
-using EnweVolume.Core.Interfaces;
+﻿using EnweVolume.Core.Interfaces;
 using NAudio.CoreAudioApi;
 using System.Windows.Threading;
 
@@ -10,18 +9,12 @@ public class AudioMonitorService : IAudioMonitorService, IDisposable
     private bool disposed = false;
     private MMDevice _audioDevice;
     private DispatcherTimer _volumeCheckTimer;
-    private VolumeLevel _volumeCurrentLevel;
-    private float _volumeYellowThreshold;
-    private float _volumeRedThreshold;
+    private float _latestAudioLevel;
 
-    public async Task InitializeAudioMonitoring(
-        float volumeYellowThreshold,
-        float volumeRedThreshold,
-        string deviceName)
+    public event Action<float> VolumeLevelChanged;
+
+    public void InitializeAudioMonitoring(string deviceName, int polling)
     {
-        _volumeYellowThreshold = volumeYellowThreshold;
-        _volumeRedThreshold = volumeRedThreshold;
-
         if (deviceName == string.Empty)
         {
             SetDeviceDefault();
@@ -33,10 +26,24 @@ public class AudioMonitorService : IAudioMonitorService, IDisposable
 
         _volumeCheckTimer = new DispatcherTimer()
         {
-            Interval = TimeSpan.FromMilliseconds(500)
+            Interval = TimeSpan.FromMilliseconds(polling)
         };
-        // _volumeCheckTimer.Tick += CheckAudioLevels;
+
+        _volumeCheckTimer.Tick += CheckAudioLevels;
         _volumeCheckTimer.Start();
+    }
+
+    public float GetLatestAudioLevel() => _latestAudioLevel;
+
+    private void CheckAudioLevels(object sender, EventArgs e)
+    {
+        if (_audioDevice == null)
+        {
+            return;
+        }
+
+        _latestAudioLevel = _audioDevice.AudioMeterInformation.MasterPeakValue;
+        VolumeLevelChanged?.Invoke(_latestAudioLevel);
     }
 
     public List<string> GetAllDeviceNames()
@@ -72,16 +79,6 @@ public class AudioMonitorService : IAudioMonitorService, IDisposable
         _audioDevice = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
     }
 
-    public void UpdateYellowThreshold(float newThreshold)
-    {
-        _volumeYellowThreshold = newThreshold;
-    }
-
-    public void UpdateRedThreshold(float newThreshold)
-    {
-        _volumeRedThreshold = newThreshold;
-    }
-
     public void Dispose()
     {
         Dispose(true);
@@ -95,6 +92,7 @@ public class AudioMonitorService : IAudioMonitorService, IDisposable
             if (disposing)
             {
                 // Dispose managed resources.
+                _volumeCheckTimer?.Stop();
                 _audioDevice?.Dispose();
             }
 
