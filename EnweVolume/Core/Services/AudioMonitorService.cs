@@ -42,7 +42,11 @@ public class AudioMonitorService : IAudioMonitorService, IDisposable
             return;
         }
 
-        _latestAudioLevel = _audioDevice.AudioMeterInformation.MasterPeakValue;
+        float currentPeak = _audioDevice.AudioMeterInformation.MasterPeakValue;
+        float systemVolume = _audioDevice.AudioEndpointVolume.MasterVolumeLevelScalar;
+
+        _latestAudioLevel = currentPeak * systemVolume;
+
         VolumeLevelChanged?.Invoke(_latestAudioLevel);
     }
 
