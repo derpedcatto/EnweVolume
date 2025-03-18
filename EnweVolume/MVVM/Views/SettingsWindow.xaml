@@ -126,7 +126,7 @@
                             Grid.Column="1"
                             IsSnapToTickEnabled="True"
                             Maximum="100"
-                            Minimum="2"
+                            Minimum="1"
                             TickFrequency="1"
                             TickPlacement="None"
                             Value="{Binding VolumeRedThreshold}" />
@@ -238,7 +238,7 @@
                             IsEnabled="{Binding ThresholdYellowEnabled}"
                             IsSnapToTickEnabled="True"
                             Maximum="99"
-                            Minimum="1"
+                            Minimum="0"
                             TickFrequency="1"
                             TickPlacement="None"
                             Value="{Binding VolumeYellowThreshold}" />
