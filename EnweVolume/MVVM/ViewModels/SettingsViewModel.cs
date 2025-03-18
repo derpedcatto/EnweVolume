@@ -176,9 +176,38 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         VolumeBarYellowThresholdLinePosition = (int)(VolumeYellowThreshold * _volumeBarWidth / 100);
     }
 
-    partial void OnVolumeRedThresholdChanged(int value) => UpdateThresholdLinePositions();
+    partial void OnVolumeRedThresholdChanged(int value)
+    {
+        if (ThresholdYellowEnabled && value <= VolumeYellowThreshold)
+        {
+            VolumeYellowThreshold = value - 1;        
+        }
 
-    partial void OnVolumeYellowThresholdChanged(int value) => UpdateThresholdLinePositions();
+        UpdateThresholdLinePositions();
+    }
+
+    partial void OnVolumeYellowThresholdChanged(int value)
+    {
+        if (ThresholdYellowEnabled && value >= VolumeRedThreshold)
+        {
+            VolumeRedThreshold = value + 1;
+        }
+
+        UpdateThresholdLinePositions();
+    }
+
+    partial void OnThresholdYellowEnabledChanged(bool value)
+    {
+        if (value)
+        {
+            if (VolumeRedThreshold <= VolumeYellowThreshold)
+            {
+                VolumeYellowThreshold = VolumeRedThreshold - 1;
+            }
+        }
+
+        UpdateThresholdLinePositions();
+    }
 
     public void Dispose()
     {
