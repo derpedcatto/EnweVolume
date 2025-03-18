@@ -156,7 +156,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         else if (newValue <= VolumeRedThreshold)
         {
-            VolumeBarColor = Brushes.Yellow;
+            if (ThresholdYellowEnabled)
+                VolumeBarColor = Brushes.Yellow;
+            else
+                VolumeBarColor = Brushes.Green;
         }
         else
         {
