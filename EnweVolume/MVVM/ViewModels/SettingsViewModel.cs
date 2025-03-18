@@ -7,6 +7,8 @@ using EnweVolume.Core.Enums;
 using EnweVolume.Core.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Windows.Media;
+using System.Windows.Controls;
+using System.Windows.Shapes;
 
 namespace EnweVolume.MVVM.ViewModels;
 
@@ -20,8 +22,11 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private DispatcherTimer _uiUpdateTimer;
     private float _latestAudioLevel;
+    private double _volumeBarWidth;
     private bool _notificationRedThresholdSent;
     private bool _notificationYellowThresholdSent;
+
+    public IRelayCommand<double> VolumeBarSizeChangedCommand { get; private set; }
 
     // Current Volume
     [ObservableProperty]
@@ -32,6 +37,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private int _volumeCurrentValue;
+
+    [ObservableProperty]
+    private int _volumeBarRedThresholdLinePosition;
+
+    [ObservableProperty]
+    private int _volumeBarYellowThresholdLinePosition;
 
     // Red Threshold
     [ObservableProperty]
@@ -90,6 +101,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _audioMonitorService = audioMonitorService;
         _trayIconManager = trayIconManager;
         _userSettingsService = userSettingsService;
+
+        VolumeBarSizeChangedCommand = new RelayCommand<double>(OnVolumeBarSizeChanged);
     }
 
     public async Task Initialize()
@@ -114,6 +127,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         };
         _uiUpdateTimer.Tick += UpdateVolumeProgressBarUI;
         _uiUpdateTimer.Start();
+
+        UpdateThresholdLinePositions();
     }
 
     private void OnAudioLevelChanged(float newLevel)
@@ -148,6 +163,22 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             VolumeBarColor = Brushes.Red;
         }
     }
+
+    private void OnVolumeBarSizeChanged(double volumeBarWidth)
+    {
+        _volumeBarWidth = volumeBarWidth;
+        UpdateThresholdLinePositions();
+    }
+
+    private void UpdateThresholdLinePositions()
+    {
+        VolumeBarRedThresholdLinePosition = (int)(VolumeRedThreshold * _volumeBarWidth / 100);
+        VolumeBarYellowThresholdLinePosition = (int)(VolumeYellowThreshold * _volumeBarWidth / 100);
+    }
+
+    partial void OnVolumeRedThresholdChanged(int value) => UpdateThresholdLinePositions();
+
+    partial void OnVolumeYellowThresholdChanged(int value) => UpdateThresholdLinePositions();
 
     public void Dispose()
     {

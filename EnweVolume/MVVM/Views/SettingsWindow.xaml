@@ -43,22 +43,23 @@
                             Foreground="{Binding VolumeBarColor}"
                             Maximum="100"
                             Minimum="0"
+                            SizeChanged="VolumeBar_SizeChanged"
                             Value="{Binding VolumeCurrentValue}" />
+                        <Line
+                            VerticalAlignment="Center"
+                            Stroke="Red"
+                            StrokeThickness="2"
+                            X1="{Binding VolumeBarRedThresholdLinePosition}"
+                            X2="{Binding VolumeBarRedThresholdLinePosition}"
+                            Y1="0"
+                            Y2="20" />
                         <Line
                             VerticalAlignment="Center"
                             Stroke="Yellow"
                             StrokeThickness="2"
                             Visibility="{Binding ThresholdYellowEnabled, Converter={StaticResource BooleanVisibilityConverter}}"
-                            X1="0"
-                            X2="0"
-                            Y1="0"
-                            Y2="20" />
-                        <Line
-                            VerticalAlignment="Center"
-                            Stroke="Red"
-                            StrokeThickness="2"
-                            X1="0"
-                            X2="0"
+                            X1="{Binding VolumeBarYellowThresholdLinePosition}"
+                            X2="{Binding VolumeBarYellowThresholdLinePosition}"
                             Y1="0"
                             Y2="20" />
                     </Grid>

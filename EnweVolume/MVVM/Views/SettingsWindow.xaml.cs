@@ -18,4 +18,12 @@ public partial class SettingsWindow : Window
 
         Loaded += async (s, e) => await _viewModel.Initialize();
     }
+
+    private void VolumeBar_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_viewModel.VolumeBarSizeChangedCommand.CanExecute(e.NewSize.Width))
+        {
+            _viewModel.VolumeBarSizeChangedCommand.Execute(e.NewSize.Width);
+        }
+    }
 }
