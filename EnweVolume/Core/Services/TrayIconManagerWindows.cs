@@ -2,6 +2,6 @@
 
 namespace EnweVolume.Core.Services;
 
-public class TrayIconManager : ITrayIconManager
+public class TrayIconManagerWindows : ITrayIconManager
 {
 }

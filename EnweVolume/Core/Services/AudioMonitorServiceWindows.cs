@@ -4,7 +4,7 @@ using System.Windows.Threading;
 
 namespace EnweVolume.Core.Services;
 
-public class AudioMonitorService : IAudioMonitorService, IDisposable
+public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
 {
     private bool disposed = false;
     private MMDevice _audioDevice;
