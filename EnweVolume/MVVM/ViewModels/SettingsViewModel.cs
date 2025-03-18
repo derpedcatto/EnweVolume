@@ -105,12 +105,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         AudioDeviceSelected = AudioDeviceNamesList.FirstOrDefault()!;
         //
 
-        _audioMonitorService.InitializeAudioMonitoring(string.Empty, 75);
+        _audioMonitorService.InitializeAudioMonitoring(string.Empty, 50);
         _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
 
         _uiUpdateTimer = new DispatcherTimer()
         {
-            Interval = TimeSpan.FromMilliseconds(120)
+            Interval = TimeSpan.FromMilliseconds(50)
         };
         _uiUpdateTimer.Tick += UpdateVolumeProgressBarUI;
         _uiUpdateTimer.Start();
