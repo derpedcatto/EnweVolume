@@ -37,14 +37,19 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
 
+        // Services
         services.AddSingleton<IMessenger, StrongReferenceMessenger>();
         services.AddSingleton<IShowToastNotificationService, ShowToastNotificationWindows>();
         services.AddSingleton<IUserSettingsService, UserSettingsService>();
         services.AddTransient<IAudioMonitorService, AudioMonitorServiceWindows>();
         services.AddTransient<ITrayIconManager, TrayIconManagerWindows>();
+        services.AddSingleton<IApplicationService, ApplicationServiceWindows>();
 
-        services.AddTransient<SettingsWindow>();
-        services.AddTransient<SettingsViewModel>();
+        // ViewModels
+        services.AddSingleton<SettingsViewModel>();
+
+        // Windows
+        services.AddSingleton<SettingsWindow>();
 
         return services.BuildServiceProvider();
     }
@@ -53,7 +58,20 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        var appService = Services.GetRequiredService<IApplicationService>();
+        appService.Initialize();
+
         var settingsWindow = Services.GetRequiredService<SettingsWindow>();
         settingsWindow.Show();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        if (Services.GetService<IApplicationService>() is IDisposable disposableAppService)
+        {
+            disposableAppService.Dispose();
+        }
+
+        base.OnExit(e);
     }
 }

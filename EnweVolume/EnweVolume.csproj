@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Core\Messages\" />
     <Folder Include="MVVM\Models\" />
   </ItemGroup>
 
