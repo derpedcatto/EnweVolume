@@ -1,6 +1,4 @@
-﻿using NAudio.CoreAudioApi;
-
-namespace EnweVolume.Core.Interfaces;
+﻿namespace EnweVolume.Core.Interfaces;
 
 public interface IAudioMonitorService
 {
