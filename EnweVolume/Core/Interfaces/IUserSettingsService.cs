@@ -4,6 +4,6 @@ namespace EnweVolume.Core.Interfaces;
 
 public interface IUserSettingsService
 {
-    Task<UserSettings> GetSettings();
-    Task SaveSettings(UserSettings userSettings);
+    Task<Result<UserSettings>> GetSettings();
+    Task<Result> SaveSettings(UserSettings userSettings);
 }

@@ -1,8 +1,8 @@
 ﻿namespace EnweVolume.Core.Models;
 
-public struct UserSettings
+public class UserSettings
 {
-    public string AudioDeviceName { get; set; }
+    public string AudioDeviceName { get; set; } = string.Empty;
     public float VolumeRedThresholdValue { get; set; }
     public float VolumeYellowThresholdValue { get; set; }
     public bool NotificationRedPushEnabled { get; set; }
@@ -13,6 +13,6 @@ public struct UserSettings
     public float NotificationYellowSoundVolume { get; set; }
     public bool ChangeProgressBarColorEnabled { get; set; }
     public bool StartWithSystemEnabled { get; set; }
-    public string CurrentTheme { get; set; }
-    public string Locale { get; set; }
+    public string CurrentTheme { get; set; } = string.Empty;
+    public string Locale { get; set; } = string.Empty;
 }
