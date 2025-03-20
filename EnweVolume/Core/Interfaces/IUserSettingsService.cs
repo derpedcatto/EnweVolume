@@ -6,4 +6,5 @@ public interface IUserSettingsService
 {
     Task<Result<UserSettings>> GetSettings();
     Task<Result> SaveSettings(UserSettings userSettings);
+    UserSettings GetDefaultSettings();
 }

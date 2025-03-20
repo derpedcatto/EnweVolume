@@ -1,6 +1,5 @@
 ﻿using EnweVolume.Core.Interfaces;
 using EnweVolume.Core.Models;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
@@ -158,27 +157,7 @@ public class UserSettingsService : IUserSettingsService
         {
             Directory.CreateDirectory(GetSettingsFolderPath());
 
-            var systemCulture = CultureInfo.CurrentUICulture;
-            var appCulture = App.SupportedCultures
-                    .Find(c => c.Name == systemCulture.Name)
-                    ?? App.SupportedCultures[0];
-
-            var defaultSettings = new UserSettings()
-            {
-                AudioDeviceName = string.Empty,
-                VolumeRedThresholdValue = 0.8f,
-                VolumeYellowThresholdValue = 0.65f,
-                NotificationRedPushEnabled = true,
-                NotificationRedSoundEnabled = false,
-                NotificationRedSoundVolume = 0.5f,
-                NotificationYellowPushEnabled = false,
-                NotificationYellowSoundEnabled = false,
-                NotificationYellowSoundVolume = 0.5f,
-                CurrentTheme = App.DefaultThemeName,
-                ChangeProgressBarColorEnabled = true,
-                StartWithSystemEnabled = true,
-                Locale = appCulture.Name
-            };
+            var defaultSettings = GetDefaultSettings();
 
             await using FileStream createStream = File.Create(_settingsFilePath);
             await JsonSerializer.SerializeAsync(createStream, defaultSettings);
@@ -191,6 +170,31 @@ public class UserSettingsService : IUserSettingsService
                 "Settings Generation Failed",
                 $"Failed to generate default settings: {ex.Message}");
         }
+    }
+
+    public UserSettings GetDefaultSettings()
+    {
+        var systemCulture = CultureInfo.CurrentUICulture;
+        var appCulture = App.SupportedCultures
+                .Find(c => c.Name == systemCulture.Name)
+                ?? App.SupportedCultures[0];
+
+        return new UserSettings()
+        {
+            AudioDeviceName = string.Empty,
+            VolumeRedThresholdValue = 80,
+            VolumeYellowThresholdValue = 65,
+            NotificationRedPushEnabled = true,
+            NotificationRedSoundEnabled = false,
+            NotificationRedSoundVolume = 50,
+            NotificationYellowPushEnabled = false,
+            NotificationYellowSoundEnabled = false,
+            NotificationYellowSoundVolume = 50,
+            CurrentTheme = App.DefaultThemeName,
+            ChangeProgressBarColorEnabled = true,
+            StartWithSystemEnabled = true,
+            Locale = appCulture.Name
+        };
     }
 
     private static string GetSettingsFolderPath()
