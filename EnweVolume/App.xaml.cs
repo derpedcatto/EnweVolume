@@ -40,8 +40,8 @@ public partial class App : Application
         services.AddSingleton<IMessenger, StrongReferenceMessenger>();
         services.AddSingleton<IShowToastNotificationService, ShowToastNotificationWindows>();
         services.AddSingleton<IUserSettingsService, UserSettingsService>();
-        services.AddTransient<IAudioMonitorService, AudioMonitorServiceWindows>();
-        services.AddTransient<ITrayIconManager, TrayIconManagerWindows>();
+        services.AddSingleton<IAudioMonitorService, AudioMonitorServiceWindows>();
+        services.AddSingleton<ITrayIconManager, TrayIconManagerWindows>();
 
         services.AddTransient<SettingsWindow>();
         services.AddTransient<SettingsViewModel>();
