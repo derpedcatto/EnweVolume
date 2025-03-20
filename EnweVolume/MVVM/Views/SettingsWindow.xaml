@@ -13,9 +13,7 @@
     MinWidth="450"
     MinHeight="400"
     d:DataContext="{d:DesignInstance Type=viewmodels:SettingsViewModel}"
-    Closing="Window_Closing"
     ResizeMode="CanResize"
-    StateChanged="Window_StateChanged"
     mc:Ignorable="d">
     <Window.Resources>
         <localconverters:AndConverter x:Key="AndConverter" />
