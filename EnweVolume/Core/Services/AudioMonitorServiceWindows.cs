@@ -7,21 +7,17 @@ namespace EnweVolume.Core.Services;
 public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
 {
     private bool disposed = false;
-    private MMDevice _audioDevice;
+    private MMDevice? _audioDevice;
     private DispatcherTimer _volumeCheckTimer;
     private float _latestAudioLevel;
 
     public event Action<float> VolumeLevelChanged;
 
-    public void InitializeAudioMonitoring(string deviceName, int polling)
+    public void InitializeAudioMonitoring(int polling)
     {
-        if (deviceName == string.Empty)
+        if (_audioDevice == null)
         {
             SetDeviceDefault();
-        }
-        else
-        {
-            SetDeviceByName(deviceName);
         }
 
         _volumeCheckTimer = new DispatcherTimer()
