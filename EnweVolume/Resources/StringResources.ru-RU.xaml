@@ -2,6 +2,27 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:system="clr-namespace:System;assembly=mscorlib">
-    <system:String x:Key="SettingsTitle">Настройки</system:String>
-    <system:String x:Key="CurrentVolumeLabel">Текущая громкость:</system:String>
+    <!--  Window Title  -->
+    <system:String x:Key="WindowTitle">Настройки EnweVolume</system:String>
+
+    <!--  Group Headers  -->
+    <system:String x:Key="Group_CurrentVolume">Текущая громкость</system:String>
+    <system:String x:Key="Group_RedThreshold">Красный порог громкости</system:String>
+    <system:String x:Key="Group_YellowThreshold">Желтый порог громкости</system:String>
+    <system:String x:Key="Group_GeneralSettings">Общие настройки</system:String>
+
+    <!--  Labels  -->
+    <system:String x:Key="Label_Zero">0</system:String>
+    <system:String x:Key="Label_Hundred">100</system:String>
+    <system:String x:Key="Label_ChangeBarColor">Менять цвет индикатора громкости</system:String>
+    <system:String x:Key="Label_VolumeThreshold">Порог громкости</system:String>
+    <system:String x:Key="Label_Notifications">Уведомления</system:String>
+    <system:String x:Key="Label_SendPushNotification">Отсылать Push-уведомления</system:String>
+    <system:String x:Key="Label_PlaySoundNotification">Проигрывать звуковое уведомление</system:String>
+    <system:String x:Key="Label_TestVolume">Проверка громкости</system:String>
+    <system:String x:Key="Label_EnableYellowThreshold">Включить желтый порог громкости</system:String>
+    <system:String x:Key="Label_StartWithSystem">Запускать с системой</system:String>
+    <system:String x:Key="Label_CurrentAudioDevice">Текущее аудиоустройство</system:String>
+    <system:String x:Key="Label_AppLocale">Язык приложения</system:String>
+    <system:String x:Key="Label_ThemeSoundSettings">Настройки темы / звука</system:String>
 </ResourceDictionary>

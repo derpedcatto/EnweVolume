@@ -14,7 +14,7 @@
     <!--  Labels  -->
     <system:String x:Key="Label_Zero">0</system:String>
     <system:String x:Key="Label_Hundred">100</system:String>
-    <system:String x:Key="Label_ChangeBarColor">Change Bar Color</system:String>
+    <system:String x:Key="Label_ChangeBarColor">Change Bar Colour</system:String>
     <system:String x:Key="Label_VolumeThreshold">Volume Threshold</system:String>
     <system:String x:Key="Label_Notifications">Notifications</system:String>
     <system:String x:Key="Label_SendPushNotification">Send Push Notification</system:String>

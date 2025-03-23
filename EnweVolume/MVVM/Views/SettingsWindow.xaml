@@ -7,7 +7,7 @@
     xmlns:localconverters="clr-namespace:EnweVolume.Core.Converters"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="clr-namespace:EnweVolume.MVVM.ViewModels"
-    Title="EnweVolume Settings"
+    Title="{DynamicResource WindowTitle}"
     Width="475"
     Height="600"
     MinWidth="450"
@@ -25,7 +25,7 @@
     </Window.Resources>
     <ScrollViewer Padding="10,0,20,0" VerticalScrollBarVisibility="Auto">
         <StackPanel Width="400" Margin="0,10">
-            <GroupBox Header="Current Volume">
+            <GroupBox Header="{DynamicResource Group_CurrentVolume}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition />
@@ -73,7 +73,7 @@
                             Grid.Column="0"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Top"
-                            Content="0" />
+                            Content="{DynamicResource Label_Zero}" />
                         <Label
                             Grid.Column="1"
                             HorizontalContentAlignment="Center"
@@ -83,18 +83,18 @@
                             Grid.Column="2"
                             HorizontalContentAlignment="Right"
                             VerticalContentAlignment="Top"
-                            Content="100" />
+                            Content="{DynamicResource Label_Hundred}" />
                     </Grid>
                     <CheckBox
                         Grid.Row="2"
                         Grid.ColumnSpan="3"
                         VerticalContentAlignment="Center"
                         IsChecked="{Binding ChangeBarColor}">
-                        <Label Content="Change bar color" />
+                        <TextBlock Text="{DynamicResource Label_ChangeBarColor}" TextWrapping="Wrap" />
                     </CheckBox>
                 </Grid>
             </GroupBox>
-            <GroupBox Header="Red Threshold">
+            <GroupBox Header="{DynamicResource Group_RedThreshold}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -116,7 +116,7 @@
                         <Label
                             Grid.ColumnSpan="2"
                             HorizontalContentAlignment="Center"
-                            Content="Volume Threshold"
+                            Content="{DynamicResource Label_VolumeThreshold}"
                             FontSize="20"
                             FontWeight="DemiBold" />
                         <Label
@@ -150,7 +150,7 @@
                         <Label
                             Grid.ColumnSpan="3"
                             HorizontalContentAlignment="Center"
-                            Content="Notifications"
+                            Content="{DynamicResource Label_Notifications}"
                             FontSize="20"
                             FontWeight="DemiBold" />
                         <CheckBox
@@ -159,7 +159,7 @@
                             Margin="0,0,0,5"
                             VerticalContentAlignment="Center"
                             IsChecked="{Binding NotificationRedPushEnabled}">
-                            <Label Content="Send push notification" />
+                            <TextBlock Text="{DynamicResource Label_SendPushNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <CheckBox
                             Grid.Row="2"
@@ -167,7 +167,7 @@
                             Margin="0,0,0,5"
                             VerticalContentAlignment="Center"
                             IsChecked="{Binding NotificationRedSoundEnabled}">
-                            <Label Content="Play sound notification" />
+                            <TextBlock Text="{DynamicResource Label_PlaySoundNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <Button
                             Grid.Row="2"
@@ -175,7 +175,7 @@
                             Margin="0,0,0,5"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
-                            Content="Test Volume"
+                            Content="{DynamicResource Label_TestVolume}"
                             IsEnabled="{Binding NotificationRedSoundEnabled}" />
                         <Label
                             Grid.Row="3"
@@ -196,7 +196,7 @@
                     </Grid>
                 </Grid>
             </GroupBox>
-            <GroupBox Header="Yellow Threshold">
+            <GroupBox Header="{DynamicResource Group_YellowThreshold}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -212,7 +212,7 @@
                         Margin="0,5,0,20"
                         VerticalContentAlignment="Center"
                         IsChecked="{Binding ThresholdYellowEnabled}">
-                        <Label Content="Enable Yellow Threshold" />
+                        <Label Content="{DynamicResource Label_EnableYellowThreshold}" />
                     </CheckBox>
                     <!--  Volume Threshold  -->
                     <Grid Grid.Row="1" Margin="0,0,0,10">
@@ -227,7 +227,7 @@
                         <Label
                             Grid.ColumnSpan="2"
                             HorizontalContentAlignment="Center"
-                            Content="Volume Threshold"
+                            Content="{DynamicResource Label_VolumeThreshold}"
                             FontSize="20"
                             FontWeight="DemiBold" />
                         <Label
@@ -262,7 +262,7 @@
                         <Label
                             Grid.ColumnSpan="3"
                             HorizontalContentAlignment="Center"
-                            Content="Notifications"
+                            Content="{DynamicResource Label_Notifications}"
                             FontSize="20"
                             FontWeight="DemiBold" />
                         <CheckBox
@@ -272,7 +272,7 @@
                             VerticalContentAlignment="Center"
                             IsChecked="{Binding NotificationYellowPushEnabled}"
                             IsEnabled="{Binding ThresholdYellowEnabled}">
-                            <Label Content="Send push notification" />
+                            <TextBlock Text="{DynamicResource Label_SendPushNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <CheckBox
                             Grid.Row="2"
@@ -281,7 +281,7 @@
                             VerticalContentAlignment="Center"
                             IsChecked="{Binding NotificationYellowSoundEnabled}"
                             IsEnabled="{Binding ThresholdYellowEnabled}">
-                            <Label Content="Play sound notification" />
+                            <TextBlock Text="{DynamicResource Label_PlaySoundNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <Button
                             Grid.Row="2"
@@ -289,7 +289,7 @@
                             Margin="0,0,0,5"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
-                            Content="Test Volume">
+                            Content="{DynamicResource Label_TestVolume}">
                             <Button.IsEnabled>
                                 <MultiBinding Converter="{StaticResource AndConverter}">
                                     <Binding Path="NotificationYellowSoundEnabled" />
@@ -322,7 +322,7 @@
                     </Grid>
                 </Grid>
             </GroupBox>
-            <GroupBox Header="General Settings">
+            <GroupBox Header="{DynamicResource Group_GeneralSettings}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition />
@@ -336,15 +336,15 @@
                         Margin="0,0,0,20"
                         VerticalContentAlignment="Center"
                         IsChecked="{Binding StartWithSystem}">
-                        <Label Content="Start with system" />
+                        <TextBlock Text="{DynamicResource Label_StartWithSystem}" TextWrapping="Wrap" />
                     </CheckBox>
-                    <Label Grid.Row="1" Content="Current Audio Device" />
+                    <Label Grid.Row="1" Content="{DynamicResource Label_CurrentAudioDevice}" />
                     <ComboBox
                         Grid.Row="2"
                         Margin="0,0,0,20"
                         ItemsSource="{Binding AudioDeviceNamesList}"
                         SelectedValue="{Binding AudioDeviceSelected}" />
-                    <Label Grid.Row="3" Content="App Locale" />
+                    <Label Grid.Row="3" Content="{DynamicResource Label_AppLocale}" />
                     <ComboBox
                         Grid.Row="4"
                         Margin="0,0,0,30"
@@ -354,7 +354,7 @@
                         Grid.Row="5"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
-                        Content="Theme / Sound Settings"
+                        Content="{DynamicResource Label_ThemeSoundSettings}"
                         IsEnabled="False" />
                 </Grid>
             </GroupBox>

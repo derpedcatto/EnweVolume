@@ -23,6 +23,7 @@ public partial class App : Application
     public static List<CultureInfo> SupportedCultures { get; } =
     [
         new CultureInfo("en-US"),
+        new CultureInfo("en-GB"),
         new CultureInfo("uk-UA"),
         new CultureInfo("ru-RU")
     ];
