@@ -199,7 +199,7 @@ public class UserSettingsService : IUserSettingsService
             var defaultSettings = GetDefaultSettings();
 
             await using FileStream createStream = File.Create(_settingsFilePath);
-            await JsonSerializer.SerializeAsync(createStream, defaultSettings);
+            await JsonSerializer.SerializeAsync(createStream, defaultSettings, _jsonSerializerOptions);
 
             return Result.Success();
         }
