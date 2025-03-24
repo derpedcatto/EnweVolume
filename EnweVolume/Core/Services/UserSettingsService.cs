@@ -11,12 +11,18 @@ public class UserSettingsService : IUserSettingsService
     private static readonly SemaphoreSlim _fileLock = new(1, 1);
     private readonly string _settingsFolderPath;
     private readonly string _settingsFilePath;
+    private readonly JsonSerializerOptions _jsonSerializerOptions;
     private bool _disposed;
 
     public UserSettingsService()
     {
         _settingsFolderPath = GetSettingsFolderPath();
         _settingsFilePath = GetSettingsFilePath();
+
+        _jsonSerializerOptions = new()
+        {
+            WriteIndented = true,
+        };
     }
 
     public async Task<Result<UserSettings>> GetSettings()
@@ -63,7 +69,7 @@ public class UserSettingsService : IUserSettingsService
                 // Creating temp file
                 await using (var tempStream = File.Create(tempFilePath))
                 {
-                    await JsonSerializer.SerializeAsync(tempStream, userSettings);
+                    await JsonSerializer.SerializeAsync(tempStream, userSettings, _jsonSerializerOptions);
                 }
 
                 if (File.Exists(_settingsFilePath))
