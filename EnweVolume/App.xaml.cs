@@ -79,4 +79,14 @@ public partial class App : Application
         var newDict = new ResourceDictionary { Source = new Uri(resourcePath, UriKind.Relative) };
         mergedDict.Add(newDict);
     }
+
+    public static string GetString(string key)
+    {
+        if (Current.TryFindResource(key) is string resourceValue)
+        {
+            return resourceValue;
+        }
+
+        return string.Empty;
+    }
 }
