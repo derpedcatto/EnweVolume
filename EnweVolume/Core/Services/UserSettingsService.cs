@@ -103,6 +103,31 @@ public class UserSettingsService : IUserSettingsService
         }
     }
 
+    public UserSettings GetDefaultSettings()
+    {
+        var systemCulture = CultureInfo.CurrentUICulture;
+        var appCulture = App.SupportedCultures
+                .Find(c => c.Name == systemCulture.Name)
+                ?? App.SupportedCultures[0];
+
+        return new UserSettings()
+        {
+            AudioDeviceName = string.Empty,
+            VolumeRedThresholdValue = 80,
+            VolumeYellowThresholdValue = 65,
+            NotificationRedPushEnabled = true,
+            NotificationRedSoundEnabled = false,
+            NotificationRedSoundVolume = 50,
+            NotificationYellowPushEnabled = false,
+            NotificationYellowSoundEnabled = false,
+            NotificationYellowSoundVolume = 50,
+            CurrentTheme = App.DefaultThemeName,
+            ChangeProgressBarColorEnabled = true,
+            StartWithSystemEnabled = true,
+            Locale = appCulture.Name
+        };
+    }
+
     private async Task<Result<UserSettings>> DeserializeSettingsFile()
     {
         try
@@ -115,6 +140,14 @@ public class UserSettingsService : IUserSettingsService
                 return Result<UserSettings>.Failure(
                     "Deserialization Failed",
                     "Settings file could not be deserialized properly.");
+            }
+
+            var defaultSettings = GetDefaultSettings();
+            var validatedSettings = ValidateSettings(settings);
+
+            if (!settings.Equals(validatedSettings))
+            {
+                await SaveSettings(validatedSettings);
             }
 
             return Result<UserSettings>.Success(settings);
@@ -172,29 +205,33 @@ public class UserSettingsService : IUserSettingsService
         }
     }
 
-    public UserSettings GetDefaultSettings()
+    private UserSettings ValidateSettings(UserSettings settings)
     {
-        var systemCulture = CultureInfo.CurrentUICulture;
-        var appCulture = App.SupportedCultures
-                .Find(c => c.Name == systemCulture.Name)
-                ?? App.SupportedCultures[0];
+        // TODO: Validation logic
 
-        return new UserSettings()
+        var defaultSettings = GetDefaultSettings();
+
+        if (settings.VolumeRedThresholdValue < 0 || settings.VolumeRedThresholdValue > 100)
         {
-            AudioDeviceName = string.Empty,
-            VolumeRedThresholdValue = 80,
-            VolumeYellowThresholdValue = 65,
-            NotificationRedPushEnabled = true,
-            NotificationRedSoundEnabled = false,
-            NotificationRedSoundVolume = 50,
-            NotificationYellowPushEnabled = false,
-            NotificationYellowSoundEnabled = false,
-            NotificationYellowSoundVolume = 50,
-            CurrentTheme = App.DefaultThemeName,
-            ChangeProgressBarColorEnabled = true,
-            StartWithSystemEnabled = true,
-            Locale = appCulture.Name
-        };
+            settings.VolumeRedThresholdValue = defaultSettings.VolumeRedThresholdValue;
+        }
+
+        if (settings.VolumeYellowThresholdValue < 0 || settings.VolumeYellowThresholdValue > 100)
+        {
+            settings.VolumeYellowThresholdValue = defaultSettings.VolumeYellowThresholdValue;
+        }
+
+        if (settings.NotificationRedSoundVolume < 0 || settings.NotificationRedSoundVolume > 100)
+        {
+            settings.NotificationRedSoundVolume = defaultSettings.NotificationRedSoundVolume;
+        }
+
+        if (settings.NotificationYellowSoundVolume < 0 || settings.NotificationYellowSoundVolume > 100)
+        {
+            settings.NotificationYellowSoundVolume = defaultSettings.NotificationYellowSoundVolume;
+        }
+
+        return settings;
     }
 
     private static string GetSettingsFolderPath()
