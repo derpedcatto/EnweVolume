@@ -5,6 +5,7 @@ using EnweVolume.MVVM.ViewModels;
 using EnweVolume.MVVM.Views;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace EnweVolume;
@@ -56,5 +57,26 @@ public partial class App : Application
 
         var settingsWindow = Services.GetRequiredService<SettingsWindow>();
         settingsWindow.Show();
+    }
+
+    public static void ApplyCulture(CultureInfo culture)
+    {
+        var mergedDict = Current.Resources.MergedDictionaries;
+        string resourcePath = $"Resources/StringResources.{culture.Name}.xaml";
+
+        Thread.CurrentThread.CurrentCulture = culture;
+        Thread.CurrentThread.CurrentUICulture = culture;
+
+        var oldDict = mergedDict
+            .Where(d => d.Source?.OriginalString.StartsWith("Resources/StringResources.") == true)
+            .ToList();
+
+        foreach (var dict in oldDict)
+        {
+            mergedDict.Remove(dict);
+        }
+
+        var newDict = new ResourceDictionary { Source = new Uri(resourcePath, UriKind.Relative) };
+        mergedDict.Add(newDict);
     }
 }

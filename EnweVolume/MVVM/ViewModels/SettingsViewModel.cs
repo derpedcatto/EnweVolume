@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows.Shapes;
+using EnweVolume.Core.Models;
 
 namespace EnweVolume.MVVM.ViewModels;
 
@@ -25,8 +26,11 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private double _volumeBarWidth;
     private bool _notificationRedThresholdSent;
     private bool _notificationYellowThresholdSent;
+    private UserSettings _userSettings;
 
     public IRelayCommand<double> VolumeBarSizeChangedCommand { get; private set; }
+
+    #region Observable Properties
 
     // Current Volume
     [ObservableProperty]
@@ -89,6 +93,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _localeSelected;
 
+    #endregion
+
     public SettingsViewModel(
         IMessenger messenger, 
         IAudioMonitorService audioMonitorService,
@@ -107,18 +113,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     public async Task Initialize()
     {
-        // temp values
-        VolumeYellowThreshold = 50;
-        VolumeRedThreshold = 75;
-        NotificationRedSoundVolume = 20;
-        NotificationYellowSoundVolume = 20;
-        LocaleList = App.SupportedCultures.ToList().Select(x => x.NativeName);
-        LocaleSelected = LocaleList.FirstOrDefault()!;
-        AudioDeviceNamesList = _audioMonitorService.GetAllDeviceNames();
-        AudioDeviceSelected = AudioDeviceNamesList.FirstOrDefault()!;
-        //
+        await GetUserSettings();
+        SetUserSettings();
 
-        _audioMonitorService.InitializeAudioMonitoring(string.Empty, 50);
+        _audioMonitorService.InitializeAudioMonitoring(50);
         _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
 
         _uiUpdateTimer = new DispatcherTimer()
@@ -129,6 +127,65 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _uiUpdateTimer.Start();
 
         UpdateThresholdLinePositions();
+    }
+
+    private async Task GetUserSettings()
+    {
+        var userSettingsResult = await _userSettingsService.GetSettings();
+        if (userSettingsResult.IsSuccess)
+        {
+            _userSettings = userSettingsResult.Value;
+        }
+        else
+        {
+            // TODO: Notify that settings have not been loaded
+            // Loading and saving default settings
+            _userSettings = _userSettingsService.GetDefaultSettings();
+            await _userSettingsService.SaveSettings(_userSettings);
+        }
+    }
+
+    private void SetUserSettings()
+    {
+        VolumeRedThreshold = _userSettings.VolumeRedThresholdValue;
+        VolumeYellowThreshold = _userSettings.VolumeYellowThresholdValue;
+        NotificationRedPushEnabled = _userSettings.NotificationRedPushEnabled;
+        NotificationYellowPushEnabled = _userSettings.NotificationYellowPushEnabled;
+        NotificationRedSoundEnabled = _userSettings.NotificationRedSoundEnabled;
+        NotificationYellowSoundEnabled = _userSettings.NotificationYellowSoundEnabled;
+        NotificationRedSoundVolume = _userSettings.NotificationRedSoundVolume;
+        NotificationYellowSoundVolume = _userSettings.NotificationYellowSoundVolume;
+        ChangeBarColor = _userSettings.ChangeProgressBarColorEnabled;
+        StartWithSystem = _userSettings.StartWithSystemEnabled;
+
+        AudioDeviceNamesList = _audioMonitorService.GetAllDeviceNames();
+
+        if (_userSettings.AudioDeviceName != string.Empty &&
+            AudioDeviceNamesList.Contains(_userSettings.AudioDeviceName))
+        {
+            _audioMonitorService.SetDeviceByName(_userSettings.AudioDeviceName);
+        }
+        else
+        {
+            _audioMonitorService.SetDeviceDefault();
+        }
+
+        LocaleList = App.SupportedCultures.Select(a => a.NativeName);
+
+        var localeNameList = App.SupportedCultures.Select(a => a.Name);
+        if (localeNameList.Contains(_userSettings.Locale))
+        {
+            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.Locale);
+            LocaleSelected = LocaleList.FirstOrDefault(locale.NativeName);
+        }
+        else
+        {
+            var defaultLocaleName = _userSettingsService.GetDefaultSettings().Locale;
+            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.Locale);
+            LocaleSelected = locale.NativeName;
+        }
+
+        OnLocaleSelectedChanged(LocaleSelected);
     }
 
     private void OnAudioLevelChanged(float newLevel)
@@ -210,6 +267,15 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
 
         UpdateThresholdLinePositions();
+    }
+
+    partial void OnLocaleSelectedChanged(string value)
+    {
+        var selectedCulture = App.SupportedCultures.FirstOrDefault(c => c.NativeName == value);
+        if (selectedCulture != null)
+        {
+            App.ApplyCulture(selectedCulture);
+        }
     }
 
     public void Dispose()
