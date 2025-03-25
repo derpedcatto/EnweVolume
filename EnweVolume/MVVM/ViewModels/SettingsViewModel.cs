@@ -195,7 +195,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private void UpdateVolumeProgressBarUI(object sender, EventArgs e)
     {
-        VolumeCurrentValue = (int)(_latestAudioLevel * 100);
+        VolumeCurrentValue = (int)(_latestAudioLevel);
     }
 
     partial void OnVolumeCurrentValueChanged(int oldValue, int newValue)

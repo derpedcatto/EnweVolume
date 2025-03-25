@@ -1,4 +1,5 @@
-﻿using EnweVolume.Core.Interfaces;
+﻿using EnweVolume.Core.Converters;
+using EnweVolume.Core.Interfaces;
 using NAudio.CoreAudioApi;
 using System.Windows.Threading;
 
@@ -41,7 +42,7 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
         float currentPeak = _audioDevice.AudioMeterInformation.MasterPeakValue;
         float systemVolume = _audioDevice.AudioEndpointVolume.MasterVolumeLevelScalar;
 
-        _latestAudioLevel = currentPeak * systemVolume;
+        _latestAudioLevel = AudioLevelConverter.PeakValueToDbSPL(currentPeak, systemVolume);
 
         VolumeLevelChanged?.Invoke(_latestAudioLevel);
     }
