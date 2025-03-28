@@ -15,6 +15,10 @@ namespace EnweVolume.MVVM.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject, IDisposable
 {
+    private readonly int SAVE_DEVOUNCE_TIMER_INTERVAL = 1000;
+    private readonly int AUDIO_MONITORING_POLLING_RATE = 50;
+    private readonly int UI_UPDATE_TIMER_INTERVAL = 50;
+
     private readonly IMessenger _messenger;
     private readonly IShowToastNotificationService _showToastNotificationService;
     private readonly IAudioMonitorService _audioMonitorService;
@@ -111,7 +115,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         _saveDebounceTimer = new DispatcherTimer()
         {
-            Interval = TimeSpan.FromMilliseconds(500),
+            Interval = TimeSpan.FromMilliseconds(SAVE_DEVOUNCE_TIMER_INTERVAL),
         };
         _saveDebounceTimer.Tick += async (s, e) =>
         {
@@ -119,12 +123,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             await SaveUserSettings();
         };
 
-        _audioMonitorService.InitializeAudioMonitoring(50);
+        _audioMonitorService.InitializeAudioMonitoring(AUDIO_MONITORING_POLLING_RATE);
         _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
 
         _uiUpdateTimer = new DispatcherTimer()
         {
-            Interval = TimeSpan.FromMilliseconds(50)
+            Interval = TimeSpan.FromMilliseconds(UI_UPDATE_TIMER_INTERVAL)
         };
         _uiUpdateTimer.Tick += UpdateVolumeProgressBarUI;
         _uiUpdateTimer.Start();
