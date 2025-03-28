@@ -1,17 +1,28 @@
 ﻿using EnweVolume.Core.Interfaces;
 using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi.Interfaces;
 using System.Windows.Threading;
 
 namespace EnweVolume.Core.Services;
 
-public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
+public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMMNotificationClient
 {
     private bool disposed = false;
+    private bool _isDefaultDevice = false;
+    private MMDeviceEnumerator _deviceEnumerator;
     private MMDevice? _audioDevice;
     private DispatcherTimer _volumeCheckTimer;
     private float _latestAudioLevel;
 
+    public event Action DeviceListChanged;
     public event Action<float> VolumeLevelChanged;
+    public event Action DevicesChanged;
+
+    public AudioMonitorServiceWindows()
+    {
+        _deviceEnumerator = new MMDeviceEnumerator();
+        _deviceEnumerator.RegisterEndpointNotificationCallback(this);
+    }
 
     public void InitializeAudioMonitoring(int polling)
     {
@@ -31,21 +42,6 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
 
     public float GetLatestAudioLevel() => _latestAudioLevel;
 
-    private void CheckAudioLevels(object sender, EventArgs e)
-    {
-        if (_audioDevice == null)
-        {
-            return;
-        }
-
-        float currentPeak = _audioDevice.AudioMeterInformation.MasterPeakValue;
-        float systemVolume = _audioDevice.AudioEndpointVolume.MasterVolumeLevelScalar;
-
-        _latestAudioLevel = currentPeak * systemVolume;
-
-        VolumeLevelChanged?.Invoke(_latestAudioLevel);
-    }
-
     public List<string> GetAllDeviceNames()
     {
         var enumerator = new MMDeviceEnumerator();
@@ -61,13 +57,14 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
 
     public void SetDeviceByName(string deviceName)
     {
-        var enumerator = new MMDeviceEnumerator();
-
-        foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+        foreach (var device in _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
         {
             if (device.DeviceFriendlyName == deviceName)
             {
+                var oldDevice = _audioDevice;
                 _audioDevice = device;
+                oldDevice?.Dispose();
+                _isDefaultDevice = false;
                 break;
             }
         }
@@ -75,8 +72,57 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
 
     public void SetDeviceDefault()
     {
-        var enumerator = new MMDeviceEnumerator();
-        _audioDevice = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        var oldDevice = _audioDevice;
+        _audioDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        oldDevice?.Dispose();
+        _isDefaultDevice = true;
+    }
+
+    public bool IsUsingDefaultDevice() => _isDefaultDevice;
+
+    public void OnDeviceStateChanged(string deviceId, DeviceState newState)
+    {
+        DeviceListChanged?.Invoke();
+    }
+
+    public void OnDeviceAdded(string pwstrDeviceId)
+    {
+        DeviceListChanged?.Invoke();
+    }
+
+    public void OnDeviceRemoved(string deviceId)
+    {
+        DeviceListChanged?.Invoke();
+    }
+
+    public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
+    {
+        if (flow == DataFlow.Render && role == Role.Multimedia)
+        {
+            if (_isDefaultDevice)
+            {
+                SetDeviceDefault();
+            }
+            DeviceListChanged?.Invoke();
+        }
+    }
+
+    public void OnPropertyValueChanged(string pwstrDeviceId, PropertyKey key) { }
+
+    private void CheckAudioLevels(object sender, EventArgs e)
+    {
+        if (_audioDevice == null)
+        {
+            return;
+        }
+
+        // 
+        float currentPeak = _audioDevice.AudioMeterInformation.MasterPeakValue;
+        float systemVolume = _audioDevice.AudioEndpointVolume.MasterVolumeLevelScalar;
+
+        _latestAudioLevel = currentPeak * systemVolume;
+
+        VolumeLevelChanged?.Invoke(_latestAudioLevel);
     }
 
     public void Dispose()
@@ -92,6 +138,8 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable
             if (disposing)
             {
                 // Dispose managed resources.
+                _deviceEnumerator.UnregisterEndpointNotificationCallback(this);
+                _deviceEnumerator.Dispose();
                 _volumeCheckTimer?.Stop();
                 _audioDevice?.Dispose();
             }

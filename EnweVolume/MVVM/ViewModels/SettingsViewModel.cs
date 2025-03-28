@@ -125,6 +125,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         _audioMonitorService.InitializeAudioMonitoring(AUDIO_MONITORING_POLLING_RATE);
         _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
+        _audioMonitorService.DevicesChanged += OnDevicesChanged;
 
         _uiUpdateTimer = new DispatcherTimer()
         {
@@ -187,10 +188,15 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         ChangeBarColor = _userSettings.ChangeProgressBarColorEnabled;
         StartWithSystem = _userSettings.StartWithSystemEnabled;
 
-        AudioDeviceNamesList = _audioMonitorService.GetAllDeviceNames();
+        AudioDeviceNamesList = new List<string> { "Default" }
+            .Concat(_audioMonitorService.GetAllDeviceNames());
 
-        if (_userSettings.AudioDeviceName != string.Empty &&
-            AudioDeviceNamesList.Contains(_userSettings.AudioDeviceName))
+        if (_userSettings.AudioDeviceName == "Default")
+        {
+            _audioMonitorService.SetDeviceDefault();
+        }
+        else if (!string.IsNullOrEmpty(_userSettings.AudioDeviceName) &&
+                AudioDeviceNamesList.Contains(_userSettings.AudioDeviceName))
         {
             _audioMonitorService.SetDeviceByName(_userSettings.AudioDeviceName);
         }
@@ -236,10 +242,19 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
 
-    private void ResetSaveDebounceTimer()
+    private void OnDevicesChanged()
     {
-        _saveDebounceTimer.Stop();
-        _saveDebounceTimer.Start();
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            var devices = new List<string> { "Default" };
+            devices.AddRange(_audioMonitorService.GetAllDeviceNames());
+            AudioDeviceNamesList = devices;
+
+            if (AudioDeviceSelected != "Default" && !AudioDeviceNamesList.Contains(AudioDeviceSelected))
+            {
+                AudioDeviceSelected = "Default";
+            }
+        });
     }
 
     #region Partials
@@ -364,7 +379,15 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     partial void OnAudioDeviceSelectedChanged(string oldValue, string newValue) 
     {
-        // TODO: AudioService change device
+        if (newValue == "Default")
+        {
+            _audioMonitorService.SetDeviceDefault();
+        }
+        else
+        {
+            _audioMonitorService.SetDeviceByName(newValue);
+        }
+
         _userSettings.AudioDeviceName = newValue;
         ResetSaveDebounceTimer();
     }
@@ -377,9 +400,17 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     #endregion
 
+    private void ResetSaveDebounceTimer()
+    {
+        _saveDebounceTimer.Stop();
+        _saveDebounceTimer.Start();
+    }
+
     public void Dispose()
     {
         _audioMonitorService.VolumeLevelChanged -= OnAudioLevelChanged;
+        _audioMonitorService.DevicesChanged -= OnDevicesChanged;
+
         _uiUpdateTimer?.Stop();
 
         _saveDebounceTimer.Stop();
