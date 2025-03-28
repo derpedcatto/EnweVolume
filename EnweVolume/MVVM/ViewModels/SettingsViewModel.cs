@@ -21,12 +21,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly ITrayIconManager _trayIconManager;
     private readonly IUserSettingsService _userSettingsService;
 
+    private UserSettings _userSettings;
     private DispatcherTimer _uiUpdateTimer;
     private float _latestAudioLevel;
     private double _volumeBarWidth;
-    private bool _notificationRedThresholdSent;
-    private bool _notificationYellowThresholdSent;
-    private UserSettings _userSettings;
 
     public IRelayCommand<double> VolumeBarSizeChangedCommand { get; private set; }
 
@@ -188,15 +186,26 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         OnLocaleSelectedChanged(LocaleSelected);
     }
 
-    private void OnAudioLevelChanged(float newLevel)
-    {
-        _latestAudioLevel = newLevel;
-    }
-
     private void UpdateVolumeProgressBarUI(object sender, EventArgs e)
     {
         VolumeCurrentValue = (int)(_latestAudioLevel * 100);
     }
+
+    private void UpdateThresholdLinePositions()
+    {
+        VolumeBarRedThresholdLinePosition = (int)(VolumeRedThreshold * _volumeBarWidth / 100);
+        VolumeBarYellowThresholdLinePosition = (int)(VolumeYellowThreshold * _volumeBarWidth / 100);
+    }
+
+    private void OnVolumeBarSizeChanged(double volumeBarWidth)
+    {
+        _volumeBarWidth = volumeBarWidth;
+        UpdateThresholdLinePositions();
+    }
+
+    private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
+
+    #region Partials
 
     partial void OnVolumeCurrentValueChanged(int oldValue, int newValue)
     {
@@ -222,18 +231,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         {
             VolumeBarColor = Brushes.Red;
         }
-    }
-
-    private void OnVolumeBarSizeChanged(double volumeBarWidth)
-    {
-        _volumeBarWidth = volumeBarWidth;
-        UpdateThresholdLinePositions();
-    }
-
-    private void UpdateThresholdLinePositions()
-    {
-        VolumeBarRedThresholdLinePosition = (int)(VolumeRedThreshold * _volumeBarWidth / 100);
-        VolumeBarYellowThresholdLinePosition = (int)(VolumeYellowThreshold * _volumeBarWidth / 100);
     }
 
     partial void OnVolumeRedThresholdChanged(int value)
@@ -277,6 +274,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             App.ApplyCulture(selectedCulture);
         }
     }
+
+    #endregion
 
     public void Dispose()
     {
