@@ -23,6 +23,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private UserSettings _userSettings;
     private DispatcherTimer _uiUpdateTimer;
+    private DispatcherTimer _saveDebounceTimer;
     private float _latestAudioLevel;
     private double _volumeBarWidth;
 
@@ -107,12 +108,16 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _userSettingsService = userSettingsService;
 
         VolumeBarSizeChangedCommand = new RelayCommand<double>(OnVolumeBarSizeChanged);
-    }
 
-    public async Task Initialize()
-    {
-        await GetUserSettings();
-        SetUserSettings();
+        _saveDebounceTimer = new DispatcherTimer()
+        {
+            Interval = TimeSpan.FromMilliseconds(500),
+        };
+        _saveDebounceTimer.Tick += async (s, e) =>
+        {
+            _saveDebounceTimer.Stop();
+            await SaveUserSettings();
+        };
 
         _audioMonitorService.InitializeAudioMonitoring(50);
         _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
@@ -125,6 +130,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _uiUpdateTimer.Start();
 
         UpdateThresholdLinePositions();
+    }
+
+    public async Task Initialize()
+    {
+        await GetUserSettings();
+        SetUserSettings();
     }
 
     private async Task GetUserSettings()
@@ -140,6 +151,22 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             // Loading and saving default settings
             _userSettings = _userSettingsService.GetDefaultSettings();
             await _userSettingsService.SaveSettings(_userSettings);
+        }
+    }
+
+    private async Task SaveUserSettings()
+    {
+        try
+        {
+            var result = await _userSettingsService.SaveSettings(_userSettings);
+            if (!result.IsSuccess)
+            {
+                // _showToastNotificationService.ShowError("Failed to save settings.");
+            }
+        }
+        catch (Exception ex)
+        {
+            // _showToastNotificationService.ShowError($"Error saving settings: {ex.Message}");
         }
     }
 
@@ -174,7 +201,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         if (localeNameList.Contains(_userSettings.Locale))
         {
             var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.Locale);
-            LocaleSelected = LocaleList.FirstOrDefault(locale.NativeName);
+            LocaleSelected = locale.NativeName;
         }
         else
         {
@@ -205,13 +232,18 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
 
+    private void ResetSaveDebounceTimer()
+    {
+        _saveDebounceTimer.Stop();
+        _saveDebounceTimer.Start();
+    }
+
     #region Partials
 
     partial void OnVolumeCurrentValueChanged(int oldValue, int newValue)
     {
         if (!ChangeBarColor)
         {
-            // TODO: Non-windows approach
             VolumeBarColor = System.Windows.SystemColors.AccentColorBrush;
             return;
         }
@@ -239,8 +271,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         {
             VolumeYellowThreshold = value - 1;        
         }
-
         UpdateThresholdLinePositions();
+
+        _userSettings.VolumeRedThresholdValue = value;
+        ResetSaveDebounceTimer();
     }
 
     partial void OnVolumeYellowThresholdChanged(int value)
@@ -249,8 +283,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         {
             VolumeRedThreshold = value + 1;
         }
-
         UpdateThresholdLinePositions();
+
+        _userSettings.VolumeYellowThresholdValue = value;
+        ResetSaveDebounceTimer();
     }
 
     partial void OnThresholdYellowEnabledChanged(bool value)
@@ -262,8 +298,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
                 VolumeYellowThreshold = VolumeRedThreshold - 1;
             }
         }
-
         UpdateThresholdLinePositions();
+
+        _userSettings.VolumeYellowThresholdEnabled = value;
+        ResetSaveDebounceTimer();
     }
 
     partial void OnLocaleSelectedChanged(string value)
@@ -273,6 +311,64 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         {
             App.ApplyCulture(selectedCulture);
         }
+
+        _userSettings.Locale = selectedCulture.Name;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnNotificationRedPushEnabledChanged(bool oldValue, bool newValue)
+    {
+        _userSettings.NotificationRedPushEnabled = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnNotificationRedSoundEnabledChanged(bool oldValue, bool newValue)
+    {
+        _userSettings.NotificationRedSoundEnabled = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnNotificationRedSoundVolumeChanged(int oldValue, int newValue)
+    {
+        _userSettings.NotificationRedSoundVolume = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnNotificationYellowPushEnabledChanged(bool oldValue, bool newValue) 
+    {
+        _userSettings.NotificationYellowPushEnabled = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnNotificationYellowSoundEnabledChanged(bool oldValue, bool newValue)
+    {
+        _userSettings.NotificationYellowSoundEnabled = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnNotificationYellowSoundVolumeChanged(int oldValue, int newValue) 
+    {
+        _userSettings.NotificationYellowSoundVolume = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnStartWithSystemChanged(bool oldValue, bool newValue) 
+    {
+        _userSettings.StartWithSystemEnabled = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnAudioDeviceSelectedChanged(string oldValue, string newValue) 
+    {
+        // TODO: AudioService change device
+        _userSettings.AudioDeviceName = newValue;
+        ResetSaveDebounceTimer();
+    }
+
+    partial void OnChangeBarColorChanged(bool oldValue, bool newValue)
+    {
+        _userSettings.ChangeProgressBarColorEnabled = newValue;
+        ResetSaveDebounceTimer();
     }
 
     #endregion
@@ -281,5 +377,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     {
         _audioMonitorService.VolumeLevelChanged -= OnAudioLevelChanged;
         _uiUpdateTimer?.Stop();
+
+        _saveDebounceTimer.Stop();
+        _ = SaveUserSettings().ConfigureAwait(false);
     }
 }
