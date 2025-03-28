@@ -2,22 +2,19 @@
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NAudio.CoreAudioApi;
-using EnweVolume.Core.Enums;
 using EnweVolume.Core.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Windows.Media;
-using System.Windows.Controls;
-using System.Windows.Shapes;
 using EnweVolume.Core.Models;
 
 namespace EnweVolume.MVVM.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject, IDisposable
 {
-    private readonly int SAVE_DEVOUNCE_TIMER_INTERVAL = 1000;
+    private readonly int SAVE_DEBOUNCE_TIMER_INTERVAL = 1000;
     private readonly int AUDIO_MONITORING_POLLING_RATE = 50;
     private readonly int UI_UPDATE_TIMER_INTERVAL = 50;
+    private readonly string DEFAULT_AUDIO_DEVICE_NAME = "Default";
 
     private readonly IMessenger _messenger;
     private readonly IShowToastNotificationService _showToastNotificationService;
@@ -34,68 +31,25 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public IRelayCommand<double> VolumeBarSizeChangedCommand { get; private set; }
 
     #region Observable Properties
-
-    // Current Volume
-    [ObservableProperty]
-    private Brush _volumeBarColor;
-
-    [ObservableProperty]
-    private bool _changeBarColor;
-
-    [ObservableProperty]
-    private int _volumeCurrentValue;
-
-    [ObservableProperty]
-    private int _volumeBarRedThresholdLinePosition;
-
-    [ObservableProperty]
-    private int _volumeBarYellowThresholdLinePosition;
-
-    // Red Threshold
-    [ObservableProperty]
-    private int _volumeRedThreshold;
-
-    [ObservableProperty]
-    private bool _notificationRedPushEnabled;
-
-    [ObservableProperty]
-    private bool _notificationRedSoundEnabled;
-
-    [ObservableProperty]
-    private int _notificationRedSoundVolume;
-
-    // Yellow Threshold
-    [ObservableProperty]
-    private bool _thresholdYellowEnabled;
-
-    [ObservableProperty]
-    private int _volumeYellowThreshold;
-
-    [ObservableProperty]
-    private bool _notificationYellowPushEnabled;
-
-    [ObservableProperty]
-    private bool _notificationYellowSoundEnabled;
-
-    [ObservableProperty]
-    private int _notificationYellowSoundVolume;
-
-    // General Settings
-    [ObservableProperty]
-    private bool _startWithSystem;
-
-    [ObservableProperty]
-    private IEnumerable<string> _audioDeviceNamesList;
-
-    [ObservableProperty]
-    private string _audioDeviceSelected;
-
-    [ObservableProperty]
-    private IEnumerable<string> _localeList;
-
-    [ObservableProperty]
-    private string _localeSelected;
-
+    [ObservableProperty] private Brush _volumeBarColor;
+    [ObservableProperty] private bool _changeBarColor;
+    [ObservableProperty] private int _volumeCurrentValue;
+    [ObservableProperty] private int _volumeBarRedThresholdLinePosition;
+    [ObservableProperty] private int _volumeBarYellowThresholdLinePosition;
+    [ObservableProperty] private int _volumeRedThreshold;
+    [ObservableProperty] private bool _notificationRedPushEnabled;
+    [ObservableProperty] private bool _notificationRedSoundEnabled;
+    [ObservableProperty] private int _notificationRedSoundVolume;
+    [ObservableProperty] private bool _thresholdYellowEnabled;
+    [ObservableProperty] private int _volumeYellowThreshold;
+    [ObservableProperty] private bool _notificationYellowPushEnabled;
+    [ObservableProperty] private bool _notificationYellowSoundEnabled;
+    [ObservableProperty] private int _notificationYellowSoundVolume;
+    [ObservableProperty] private bool _startWithSystem;
+    [ObservableProperty] private IEnumerable<string> _audioDeviceNamesList;
+    [ObservableProperty] private string _audioDeviceSelected;
+    [ObservableProperty] private IEnumerable<string> _localeList;
+    [ObservableProperty] private string _localeSelected;
     #endregion
 
     public SettingsViewModel(
@@ -113,9 +67,28 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         VolumeBarSizeChangedCommand = new RelayCommand<double>(OnVolumeBarSizeChanged);
 
-        _saveDebounceTimer = new DispatcherTimer()
+        InitializeTimers();
+        SetupAudioMonitoring();
+    }
+
+    public async Task Initialize()
+    {
+        await GetUserSettings();
+        SetUserSettings();
+    }
+
+    private void SetupAudioMonitoring()
+    {
+        _audioMonitorService.InitializeAudioMonitoring(AUDIO_MONITORING_POLLING_RATE);
+        _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
+        _audioMonitorService.DeviceListChanged += OnAudioDevicesChanged;
+    }
+
+    private void InitializeTimers()
+    {
+        _saveDebounceTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(SAVE_DEVOUNCE_TIMER_INTERVAL),
+            Interval = TimeSpan.FromMilliseconds(SAVE_DEBOUNCE_TIMER_INTERVAL)
         };
         _saveDebounceTimer.Tick += async (s, e) =>
         {
@@ -123,24 +96,18 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             await SaveUserSettings();
         };
 
-        _audioMonitorService.InitializeAudioMonitoring(AUDIO_MONITORING_POLLING_RATE);
-        _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
-        _audioMonitorService.DeviceListChanged += OnDevicesChanged;
-
-        _uiUpdateTimer = new DispatcherTimer()
+        _uiUpdateTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(UI_UPDATE_TIMER_INTERVAL)
         };
         _uiUpdateTimer.Tick += UpdateVolumeProgressBarUI;
         _uiUpdateTimer.Start();
-
-        UpdateThresholdLinePositions();
     }
 
-    public async Task Initialize()
+    private void ResetSaveDebounceTimer()
     {
-        await GetUserSettings();
-        SetUserSettings();
+        _saveDebounceTimer.Stop();
+        _saveDebounceTimer.Start();
     }
 
     private async Task GetUserSettings()
@@ -179,6 +146,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     {
         VolumeRedThreshold = _userSettings.VolumeRedThresholdValue;
         VolumeYellowThreshold = _userSettings.VolumeYellowThresholdValue;
+        ThresholdYellowEnabled = _userSettings.VolumeYellowThresholdEnabled;
         NotificationRedPushEnabled = _userSettings.NotificationRedPushEnabled;
         NotificationYellowPushEnabled = _userSettings.NotificationYellowPushEnabled;
         NotificationRedSoundEnabled = _userSettings.NotificationRedSoundEnabled;
@@ -188,10 +156,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         ChangeBarColor = _userSettings.ChangeProgressBarColorEnabled;
         StartWithSystem = _userSettings.StartWithSystemEnabled;
 
-        AudioDeviceNamesList = new List<string> { "Default" }
+        AudioDeviceNamesList = new List<string> { DEFAULT_AUDIO_DEVICE_NAME }
             .Concat(_audioMonitorService.GetAllDeviceNames());
 
-        if (_userSettings.AudioDeviceName == "Default")
+        if (_userSettings.AudioDeviceName == DEFAULT_AUDIO_DEVICE_NAME)
         {
             _audioMonitorService.SetDeviceDefault();
         }
@@ -202,7 +170,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         else
         {
-            _userSettings.AudioDeviceName = "Default";
+            _userSettings.AudioDeviceName = DEFAULT_AUDIO_DEVICE_NAME;
             _audioMonitorService.SetDeviceDefault();
         }
         AudioDeviceSelected = _userSettings.AudioDeviceName;
@@ -242,19 +210,20 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         UpdateThresholdLinePositions();
     }
 
-    private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
+    private void OnAudioLevelChanged(float newLevel) => 
+        _latestAudioLevel = newLevel;
 
-    private void OnDevicesChanged()
+    private void OnAudioDevicesChanged()
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
-            var devices = new List<string> { "Default" };
+            var devices = new List<string> { DEFAULT_AUDIO_DEVICE_NAME };
             devices.AddRange(_audioMonitorService.GetAllDeviceNames());
             AudioDeviceNamesList = devices;
 
-            if (AudioDeviceSelected != "Default" && !AudioDeviceNamesList.Contains(AudioDeviceSelected))
+            if (AudioDeviceSelected != DEFAULT_AUDIO_DEVICE_NAME && !AudioDeviceNamesList.Contains(AudioDeviceSelected))
             {
-                AudioDeviceSelected = "Default";
+                AudioDeviceSelected = DEFAULT_AUDIO_DEVICE_NAME;
             }
         });
     }
@@ -381,7 +350,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     partial void OnAudioDeviceSelectedChanged(string oldValue, string newValue) 
     {
-        if (newValue == "Default")
+        if (newValue == DEFAULT_AUDIO_DEVICE_NAME)
         {
             _audioMonitorService.SetDeviceDefault();
         }
@@ -402,16 +371,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     #endregion
 
-    private void ResetSaveDebounceTimer()
-    {
-        _saveDebounceTimer.Stop();
-        _saveDebounceTimer.Start();
-    }
-
     public void Dispose()
     {
         _audioMonitorService.VolumeLevelChanged -= OnAudioLevelChanged;
-        _audioMonitorService.DeviceListChanged -= OnDevicesChanged;
+        _audioMonitorService.DeviceListChanged -= OnAudioDevicesChanged;
 
         _uiUpdateTimer?.Stop();
 
