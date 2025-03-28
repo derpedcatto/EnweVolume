@@ -121,6 +121,7 @@ public class UserSettingsService : IUserSettingsService
             AudioDeviceName = string.Empty,
             VolumeRedThresholdValue = 80,
             VolumeYellowThresholdValue = 65,
+            VolumeYellowThresholdEnabled = false,
             NotificationRedPushEnabled = true,
             NotificationRedSoundEnabled = false,
             NotificationRedSoundVolume = 50,

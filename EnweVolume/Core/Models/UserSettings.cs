@@ -5,6 +5,7 @@ public class UserSettings
     public string AudioDeviceName { get; set; } = string.Empty;
     public int VolumeRedThresholdValue { get; set; }
     public int VolumeYellowThresholdValue { get; set; }
+    public bool VolumeYellowThresholdEnabled { get; set; }
     public bool NotificationRedPushEnabled { get; set; }
     public bool NotificationRedSoundEnabled { get; set; }
     public int NotificationRedSoundVolume { get; set; }
@@ -25,6 +26,7 @@ public class UserSettings
         return AudioDeviceName == other.AudioDeviceName &&
                VolumeRedThresholdValue == other.VolumeRedThresholdValue &&
                VolumeYellowThresholdValue == other.VolumeYellowThresholdValue &&
+               VolumeYellowThresholdEnabled == other.VolumeYellowThresholdEnabled &&
                NotificationRedPushEnabled == other.NotificationRedPushEnabled &&
                NotificationRedSoundEnabled == other.NotificationRedSoundEnabled &&
                NotificationRedSoundVolume == other.NotificationRedSoundVolume &&
@@ -43,6 +45,7 @@ public class UserSettings
             AudioDeviceName,
             VolumeRedThresholdValue,
             VolumeYellowThresholdValue,
+            VolumeYellowThresholdEnabled,
             NotificationRedPushEnabled,
             NotificationRedSoundEnabled,
             NotificationRedSoundVolume,
