@@ -13,13 +13,15 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
     private MMDevice? _audioDevice;
     private DispatcherTimer _volumeCheckTimer;
     private float _latestAudioLevel;
+    private readonly object _deviceLock = new object();
+    private readonly Dispatcher _dispatcher;
 
     public event Action DeviceListChanged;
     public event Action<float> VolumeLevelChanged;
-    public event Action DevicesChanged;
 
     public AudioMonitorServiceWindows()
     {
+        _dispatcher = Dispatcher.CurrentDispatcher;
         _deviceEnumerator = new MMDeviceEnumerator();
         _deviceEnumerator.RegisterEndpointNotificationCallback(this);
     }
@@ -44,66 +46,78 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
 
     public List<string> GetAllDeviceNames()
     {
-        var enumerator = new MMDeviceEnumerator();
-        var deviceNameList = new List<string>();
-
-        foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)) 
+        lock (_deviceLock)
         {
-            deviceNameList.Add(device.DeviceFriendlyName);
+            var deviceNameList = new List<string>();
+            foreach (var device in _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+            {
+                deviceNameList.Add(device.DeviceFriendlyName);
+            }
+            return deviceNameList;
         }
-
-        return deviceNameList;
     }
 
     public void SetDeviceByName(string deviceName)
     {
-        foreach (var device in _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+        lock (_deviceLock)
         {
-            if (device.DeviceFriendlyName == deviceName)
+            foreach (var device in _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
             {
-                var oldDevice = _audioDevice;
-                _audioDevice = device;
-                oldDevice?.Dispose();
-                _isDefaultDevice = false;
-                break;
+                if (device.DeviceFriendlyName == deviceName)
+                {
+                    var oldDevice = _audioDevice;
+                    _audioDevice = device;
+                    oldDevice?.Dispose();
+                    _isDefaultDevice = false;
+                    break;
+                }
             }
         }
     }
 
     public void SetDeviceDefault()
     {
-        var oldDevice = _audioDevice;
-        _audioDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-        oldDevice?.Dispose();
-        _isDefaultDevice = true;
+        lock (_deviceLock)
+        {
+            var oldDevice = _audioDevice;
+            _audioDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+            oldDevice?.Dispose();
+            _isDefaultDevice = true;
+        }
     }
 
     public bool IsUsingDefaultDevice() => _isDefaultDevice;
 
     public void OnDeviceStateChanged(string deviceId, DeviceState newState)
     {
-        DeviceListChanged?.Invoke();
+        _dispatcher.BeginInvoke(() => DeviceListChanged?.Invoke());
     }
 
     public void OnDeviceAdded(string pwstrDeviceId)
     {
-        DeviceListChanged?.Invoke();
+        _dispatcher.BeginInvoke(() => DeviceListChanged?.Invoke());
     }
 
     public void OnDeviceRemoved(string deviceId)
     {
-        DeviceListChanged?.Invoke();
+        _dispatcher.BeginInvoke(() => DeviceListChanged?.Invoke());
     }
 
     public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
     {
         if (flow == DataFlow.Render && role == Role.Multimedia)
         {
-            if (_isDefaultDevice)
+            _dispatcher.BeginInvoke(() =>
             {
-                SetDeviceDefault();
-            }
-            DeviceListChanged?.Invoke();
+                lock (_deviceLock)
+                {
+                    if (_isDefaultDevice)
+                    {
+                        SetDeviceDefault();
+                    }
+                }
+                DeviceListChanged?.Invoke();
+            });
         }
     }
 
@@ -111,18 +125,35 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
 
     private void CheckAudioLevels(object sender, EventArgs e)
     {
-        if (_audioDevice == null)
+        MMDevice currentDevice;
+        lock (_deviceLock)
         {
-            return;
+            currentDevice = _audioDevice;
         }
 
-        // 
-        float currentPeak = _audioDevice.AudioMeterInformation.MasterPeakValue;
-        float systemVolume = _audioDevice.AudioEndpointVolume.MasterVolumeLevelScalar;
+        if (currentDevice == null)
+            return;
+        try
+        {
+            float currentPeak = currentDevice.AudioMeterInformation.MasterPeakValue;
+            float systemVolume = currentDevice.AudioEndpointVolume.MasterVolumeLevelScalar;
 
-        _latestAudioLevel = currentPeak * systemVolume;
+            _latestAudioLevel = currentPeak * systemVolume;
 
-        VolumeLevelChanged?.Invoke(_latestAudioLevel);
+            VolumeLevelChanged?.Invoke(_latestAudioLevel);
+        }
+        catch (Exception ex)
+        {
+            lock (_deviceLock)
+            {
+                if (_audioDevice == currentDevice)
+                {
+                    _audioDevice?.Dispose();
+                    _audioDevice = null;
+                    _isDefaultDevice = false;
+                }
+            }
+        }
     }
 
     public void Dispose()
@@ -141,7 +172,10 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
                 _deviceEnumerator.UnregisterEndpointNotificationCallback(this);
                 _deviceEnumerator.Dispose();
                 _volumeCheckTimer?.Stop();
-                _audioDevice?.Dispose();
+                lock (_deviceLock)
+                {
+                    _audioDevice?.Dispose();
+                }
             }
 
             disposed = true;

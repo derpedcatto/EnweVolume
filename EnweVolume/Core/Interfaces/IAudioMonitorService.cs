@@ -9,6 +9,6 @@ public interface IAudioMonitorService
     public void SetDeviceDefault();
     public bool IsUsingDefaultDevice();
 
-    event Action DevicesChanged;
+    event Action DeviceListChanged;
     event Action<float> VolumeLevelChanged;
 }

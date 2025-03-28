@@ -125,7 +125,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         _audioMonitorService.InitializeAudioMonitoring(AUDIO_MONITORING_POLLING_RATE);
         _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
-        _audioMonitorService.DevicesChanged += OnDevicesChanged;
+        _audioMonitorService.DeviceListChanged += OnDevicesChanged;
 
         _uiUpdateTimer = new DispatcherTimer()
         {
@@ -202,8 +202,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         else
         {
+            _userSettings.AudioDeviceName = "Default";
             _audioMonitorService.SetDeviceDefault();
         }
+        AudioDeviceSelected = _userSettings.AudioDeviceName;
 
         LocaleList = App.SupportedCultures.Select(a => a.NativeName);
 
@@ -244,7 +246,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private void OnDevicesChanged()
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        Application.Current.Dispatcher.BeginInvoke(() =>
         {
             var devices = new List<string> { "Default" };
             devices.AddRange(_audioMonitorService.GetAllDeviceNames());
@@ -267,16 +269,16 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (newValue <= VolumeYellowThreshold)
+        if (newValue <= VolumeRedThreshold)
         {
-            VolumeBarColor = Brushes.Green;
-        }
-        else if (newValue <= VolumeRedThreshold)
-        {
-            if (ThresholdYellowEnabled)
+            if (ThresholdYellowEnabled && newValue >= VolumeYellowThreshold)
+            {
                 VolumeBarColor = Brushes.Yellow;
+            }
             else
+            {
                 VolumeBarColor = Brushes.Green;
+            }
         }
         else
         {
@@ -409,7 +411,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _audioMonitorService.VolumeLevelChanged -= OnAudioLevelChanged;
-        _audioMonitorService.DevicesChanged -= OnDevicesChanged;
+        _audioMonitorService.DeviceListChanged -= OnDevicesChanged;
 
         _uiUpdateTimer?.Stop();
 
