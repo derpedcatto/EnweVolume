@@ -109,7 +109,7 @@ public class UserSettingsService : IUserSettingsService
         }
     }
 
-    public UserSettings GetDefaultSettings()
+    public UserSettings GetDefaultUserSettings()
     {
         var systemCulture = CultureInfo.CurrentUICulture;
         var appCulture = App.SupportedCultures
@@ -118,7 +118,20 @@ public class UserSettingsService : IUserSettingsService
 
         return new UserSettings()
         {
-            AudioDeviceName = string.Empty,
+            DeviceProfiles = [],
+            CurrentDeviceName = string.Empty,
+            CurrentTheme = App.DefaultThemeName,
+            ChangeProgressBarColorEnabled = true,
+            StartWithSystemEnabled = true,
+            Locale = appCulture.Name
+        };
+    }
+
+    public DeviceSettings GetDefaultDeviceSettings(string deviceName)
+    {
+        return new DeviceSettings()
+        {
+            AudioDeviceName = deviceName,
             VolumeRedThresholdValue = 80,
             VolumeYellowThresholdValue = 65,
             VolumeYellowThresholdEnabled = false,
@@ -128,10 +141,6 @@ public class UserSettingsService : IUserSettingsService
             NotificationYellowPushEnabled = false,
             NotificationYellowSoundEnabled = false,
             NotificationYellowSoundVolume = 50,
-            CurrentTheme = App.DefaultThemeName,
-            ChangeProgressBarColorEnabled = true,
-            StartWithSystemEnabled = true,
-            Locale = appCulture.Name
         };
     }
 
@@ -149,7 +158,7 @@ public class UserSettingsService : IUserSettingsService
                     "Settings file could not be deserialized properly.");
             }
 
-            var defaultSettings = GetDefaultSettings();
+            var defaultSettings = GetDefaultUserSettings();
             var validatedSettings = ValidateSettings(settings);
 
             if (!settings.Equals(validatedSettings))
@@ -197,7 +206,7 @@ public class UserSettingsService : IUserSettingsService
         {
             Directory.CreateDirectory(GetSettingsFolderPath());
 
-            var defaultSettings = GetDefaultSettings();
+            var defaultSettings = GetDefaultUserSettings();
 
             await using FileStream createStream = File.Create(_settingsFilePath);
             await JsonSerializer.SerializeAsync(createStream, defaultSettings, _jsonSerializerOptions);
@@ -215,28 +224,6 @@ public class UserSettingsService : IUserSettingsService
     private UserSettings ValidateSettings(UserSettings settings)
     {
         // TODO: Validation logic
-
-        var defaultSettings = GetDefaultSettings();
-
-        if (settings.VolumeRedThresholdValue < 0 || settings.VolumeRedThresholdValue > 100)
-        {
-            settings.VolumeRedThresholdValue = defaultSettings.VolumeRedThresholdValue;
-        }
-
-        if (settings.VolumeYellowThresholdValue < 0 || settings.VolumeYellowThresholdValue > 100)
-        {
-            settings.VolumeYellowThresholdValue = defaultSettings.VolumeYellowThresholdValue;
-        }
-
-        if (settings.NotificationRedSoundVolume < 0 || settings.NotificationRedSoundVolume > 100)
-        {
-            settings.NotificationRedSoundVolume = defaultSettings.NotificationRedSoundVolume;
-        }
-
-        if (settings.NotificationYellowSoundVolume < 0 || settings.NotificationYellowSoundVolume > 100)
-        {
-            settings.NotificationYellowSoundVolume = defaultSettings.NotificationYellowSoundVolume;
-        }
 
         return settings;
     }

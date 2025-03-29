@@ -44,6 +44,8 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
 
     public float GetLatestAudioLevel() => _latestAudioLevel;
 
+    public string GetCurrentDeviceName() => _audioDevice.DeviceFriendlyName;
+
     public List<string> GetAllDeviceNames()
     {
         lock (_deviceLock)
