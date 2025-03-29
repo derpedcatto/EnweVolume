@@ -170,20 +170,14 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             _userSettings.CurrentDeviceName = DEFAULT_AUDIO_DEVICE_NAME;
         }
 
-        if ( ! _userSettings.DeviceProfiles.TryGetValue(realDeviceName, out DeviceSettings? retrievedSettings))
+        if (_userSettings.DeviceProfiles.TryGetValue(realDeviceName, out var retrievedSettings))
         {
-            if (retrievedSettings != null) 
-            {
-                _currentDeviceSettings = retrievedSettings;
-            }
-            else
-            {
-                _currentDeviceSettings = _userSettingsService.GetDefaultDeviceSettings(realDeviceName);
-            }
+            _currentDeviceSettings = retrievedSettings;
         }
         else
         {
             _currentDeviceSettings = _userSettingsService.GetDefaultDeviceSettings(realDeviceName);
+            _userSettings.DeviceProfiles[realDeviceName] = _currentDeviceSettings;
         }
 
         _userSettings.DeviceProfiles[realDeviceName] = _currentDeviceSettings;
@@ -214,15 +208,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    private DeviceSettings GetCurrentDevice() => _userSettings.DeviceProfiles[_currentDeviceSettings.AudioDeviceName];
-
     private void SaveCurrentDeviceSettings()
     {
-        if ( ! _userSettings.DeviceProfiles.TryAdd(_currentDeviceSettings.AudioDeviceName, _currentDeviceSettings))
-        {
-            _userSettings.DeviceProfiles[_currentDeviceSettings.AudioDeviceName] = _currentDeviceSettings;
-        }
-
+        _userSettings.DeviceProfiles[_currentDeviceSettings.AudioDeviceName] = _currentDeviceSettings;
         ResetSaveDebounceTimer();
     }
 
@@ -297,7 +285,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         UpdateThresholdLinePositions();
 
-        GetCurrentDevice().VolumeRedThresholdValue = value;
+        _currentDeviceSettings.VolumeRedThresholdValue = value;
         SaveCurrentDeviceSettings();
     }
 
@@ -309,7 +297,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         UpdateThresholdLinePositions();
 
-        GetCurrentDevice().VolumeYellowThresholdValue = value;
+        _currentDeviceSettings.VolumeYellowThresholdValue = value;
         SaveCurrentDeviceSettings();
     }
 
@@ -324,59 +312,82 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         UpdateThresholdLinePositions();
 
-        GetCurrentDevice().VolumeYellowThresholdEnabled = value;
+        _currentDeviceSettings.VolumeYellowThresholdEnabled = value;
         SaveCurrentDeviceSettings();
     }
 
     partial void OnNotificationRedPushEnabledChanged(bool oldValue, bool newValue)
     {
-        GetCurrentDevice().NotificationRedPushEnabled = newValue;
+        _currentDeviceSettings.NotificationRedPushEnabled = newValue;
         SaveCurrentDeviceSettings();
     }
 
     partial void OnNotificationRedSoundEnabledChanged(bool oldValue, bool newValue)
     {
-        GetCurrentDevice().NotificationRedSoundEnabled = newValue;
+        _currentDeviceSettings.NotificationRedSoundEnabled = newValue;
         SaveCurrentDeviceSettings();
     }
 
     partial void OnNotificationRedSoundVolumeChanged(int oldValue, int newValue)
     {
-        GetCurrentDevice().NotificationRedSoundVolume = newValue;
+        _currentDeviceSettings.NotificationRedSoundVolume = newValue;
         SaveCurrentDeviceSettings();
     }
 
     partial void OnNotificationYellowPushEnabledChanged(bool oldValue, bool newValue) 
     {
-        GetCurrentDevice().NotificationYellowPushEnabled = newValue;
+        _currentDeviceSettings.NotificationYellowPushEnabled = newValue;
         SaveCurrentDeviceSettings();
     }
 
     partial void OnNotificationYellowSoundEnabledChanged(bool oldValue, bool newValue)
     {
-        GetCurrentDevice().NotificationYellowSoundEnabled = newValue;
+        _currentDeviceSettings.NotificationYellowSoundEnabled = newValue;
         SaveCurrentDeviceSettings();
     }
 
     partial void OnNotificationYellowSoundVolumeChanged(int oldValue, int newValue) 
     {
-        GetCurrentDevice().NotificationYellowSoundVolume = newValue;
+        _currentDeviceSettings.NotificationYellowSoundVolume = newValue;
         SaveCurrentDeviceSettings();
     }
 
     partial void OnAudioDeviceSelectedChanged(string value)
     {
+        string realDeviceName;
+
         if (value == DEFAULT_AUDIO_DEVICE_NAME)
         {
             _audioMonitorService.SetDeviceDefault();
-            _userSettings.CurrentDeviceName = _audioMonitorService.GetCurrentDeviceName();
+            realDeviceName = _audioMonitorService.GetCurrentDeviceName();
+            _userSettings.CurrentDeviceName = DEFAULT_AUDIO_DEVICE_NAME;
         }
         else
         {
             _audioMonitorService.SetDeviceByName(value);
+            realDeviceName = value;
             _userSettings.CurrentDeviceName = value;
         }
-        
+
+        // Load or create device profile
+        if (!_userSettings.DeviceProfiles.TryGetValue(realDeviceName, out var settings))
+        {
+            settings = _userSettingsService.GetDefaultDeviceSettings(realDeviceName);
+            _userSettings.DeviceProfiles[realDeviceName] = settings;
+        }
+        _currentDeviceSettings = settings;
+
+        // Update all bound settings
+        VolumeRedThreshold = _currentDeviceSettings.VolumeRedThresholdValue;
+        VolumeYellowThreshold = _currentDeviceSettings.VolumeYellowThresholdValue;
+        ThresholdYellowEnabled = _currentDeviceSettings.VolumeYellowThresholdEnabled;
+        NotificationRedPushEnabled = _currentDeviceSettings.NotificationRedPushEnabled;
+        NotificationRedSoundEnabled = _currentDeviceSettings.NotificationRedSoundEnabled;
+        NotificationRedSoundVolume = _currentDeviceSettings.NotificationRedSoundVolume;
+        NotificationYellowPushEnabled = _currentDeviceSettings.NotificationYellowPushEnabled;
+        NotificationYellowSoundEnabled = _currentDeviceSettings.NotificationYellowSoundEnabled;
+        NotificationYellowSoundVolume = _currentDeviceSettings.NotificationYellowSoundVolume;
+
         ResetSaveDebounceTimer();
     }
 
