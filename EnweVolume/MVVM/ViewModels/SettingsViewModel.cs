@@ -72,6 +72,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         InitializeAudioMonitoring();
     }
 
+    #region Initializers
+
     public async Task Initialize()
     {
         await InitializeUserSettings();
@@ -146,51 +148,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         OnLocaleSelectedChanged(LocaleSelected);
 
         // Devices
-
-        AudioDeviceNamesList = new List<string> { DEFAULT_AUDIO_DEVICE_NAME }
-            .Concat(_audioMonitorService.GetAllDeviceNames());
-
-        string realDeviceName;
-        if (_userSettings.CurrentDeviceName == DEFAULT_AUDIO_DEVICE_NAME)
-        {
-            realDeviceName = _audioMonitorService.GetCurrentDeviceName();
-        }
-        else
-        {
-            realDeviceName = _userSettings.CurrentDeviceName;
-        }
-
-        if (AudioDeviceNamesList.Contains(realDeviceName))
-        {
-            _audioMonitorService.SetDeviceByName(realDeviceName);
-        }
-        else
-        {
-            _audioMonitorService.SetDeviceDefault();
-            _userSettings.CurrentDeviceName = DEFAULT_AUDIO_DEVICE_NAME;
-        }
-
-        if (_userSettings.DeviceProfiles.TryGetValue(realDeviceName, out var retrievedSettings))
-        {
-            _currentDeviceSettings = retrievedSettings;
-        }
-        else
-        {
-            _currentDeviceSettings = _userSettingsService.GetDefaultDeviceSettings(realDeviceName);
-            _userSettings.DeviceProfiles[realDeviceName] = _currentDeviceSettings;
-        }
-
-        _userSettings.DeviceProfiles[realDeviceName] = _currentDeviceSettings;
-        AudioDeviceSelected = _userSettings.CurrentDeviceName;
+        // TODO: New Audio Monitoring
 
         await _userSettingsService.SaveSettings(_userSettings);
     }
 
-    private void ResetSaveDebounceTimer()
-    {
-        _saveDebounceTimer.Stop();
-        _saveDebounceTimer.Start();
-    }
+    #endregion
 
     private async Task SaveUserSettings()
     {
@@ -202,7 +165,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
                 // _showToastNotificationService.ShowError("Failed to save settings.");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // _showToastNotificationService.ShowError($"Error saving settings: {ex.Message}");
         }
@@ -210,9 +173,24 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private void SaveCurrentDeviceSettings()
     {
-        _userSettings.DeviceProfiles[_currentDeviceSettings.AudioDeviceName] = _currentDeviceSettings;
+        // TODO: New Audio Monitoring
         ResetSaveDebounceTimer();
     }
+
+    private void ResetSaveDebounceTimer()
+    {
+        _saveDebounceTimer.Stop();
+        _saveDebounceTimer.Start();
+    }
+
+    private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
+
+    private void OnAudioDevicesChanged()
+    {
+        // TODO: New Audio Monitoring
+    }
+
+    #region UI
 
     private void UpdateVolumeProgressBarUI(object sender, EventArgs e)
     {
@@ -231,26 +209,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         UpdateThresholdLinePositions();
     }
 
-    private void OnAudioLevelChanged(float newLevel) => 
-        _latestAudioLevel = newLevel;
+    #endregion
 
-    private void OnAudioDevicesChanged()
-    {
-        Application.Current.Dispatcher.BeginInvoke(() =>
-        {
-            var devices = new List<string> { DEFAULT_AUDIO_DEVICE_NAME }
-                .Concat(_audioMonitorService.GetAllDeviceNames());
-            AudioDeviceNamesList = devices;
-
-            if (AudioDeviceSelected != DEFAULT_AUDIO_DEVICE_NAME && 
-                !AudioDeviceNamesList.Contains(_audioMonitorService.GetCurrentDeviceName()))
-            {
-                AudioDeviceSelected = DEFAULT_AUDIO_DEVICE_NAME;
-            }
-        });
-    }
-
-    #region Partials
+    #region Property Changed Handlers
 
     partial void OnVolumeCurrentValueChanged(int oldValue, int newValue)
     {
@@ -354,28 +315,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     partial void OnAudioDeviceSelectedChanged(string value)
     {
-        string realDeviceName;
-
-        if (value == DEFAULT_AUDIO_DEVICE_NAME)
-        {
-            _audioMonitorService.SetDeviceDefault();
-            realDeviceName = _audioMonitorService.GetCurrentDeviceName();
-            _userSettings.CurrentDeviceName = DEFAULT_AUDIO_DEVICE_NAME;
-        }
-        else
-        {
-            _audioMonitorService.SetDeviceByName(value);
-            realDeviceName = value;
-            _userSettings.CurrentDeviceName = value;
-        }
-
-        // Load or create device profile
-        if (!_userSettings.DeviceProfiles.TryGetValue(realDeviceName, out var settings))
-        {
-            settings = _userSettingsService.GetDefaultDeviceSettings(realDeviceName);
-            _userSettings.DeviceProfiles[realDeviceName] = settings;
-        }
-        _currentDeviceSettings = settings;
+        // TODO: New Audio Monitoring
 
         // Update all bound settings
         VolumeRedThreshold = _currentDeviceSettings.VolumeRedThresholdValue;
