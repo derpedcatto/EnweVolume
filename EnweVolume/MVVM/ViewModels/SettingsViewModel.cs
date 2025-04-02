@@ -14,7 +14,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly int SAVE_DEBOUNCE_TIMER_INTERVAL = 1000;
     private readonly int AUDIO_MONITORING_POLLING_RATE = 50;
     private readonly int UI_UPDATE_TIMER_INTERVAL = 50;
-    private readonly string DEFAULT_AUDIO_DEVICE_NAME = "Default";
 
     private readonly IMessenger _messenger;
     private readonly IShowToastNotificationService _showToastNotificationService;
@@ -32,25 +31,25 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public IRelayCommand<double> VolumeBarSizeChangedCommand { get; private set; }
 
     #region Observable Properties
-    [ObservableProperty] private Brush _volumeBarColor;
-    [ObservableProperty] private bool _changeBarColor;
-    [ObservableProperty] private int _volumeCurrentValue;
-    [ObservableProperty] private int _volumeBarRedThresholdLinePosition;
-    [ObservableProperty] private int _volumeBarYellowThresholdLinePosition;
-    [ObservableProperty] private int _volumeRedThreshold;
-    [ObservableProperty] private bool _notificationRedPushEnabled;
-    [ObservableProperty] private bool _notificationRedSoundEnabled;
-    [ObservableProperty] private int _notificationRedSoundVolume;
-    [ObservableProperty] private bool _thresholdYellowEnabled;
-    [ObservableProperty] private int _volumeYellowThreshold;
-    [ObservableProperty] private bool _notificationYellowPushEnabled;
-    [ObservableProperty] private bool _notificationYellowSoundEnabled;
-    [ObservableProperty] private int _notificationYellowSoundVolume;
-    [ObservableProperty] private bool _startWithSystem;
-    [ObservableProperty] private IEnumerable<string> _audioDeviceNamesList;
-    [ObservableProperty] private string _audioDeviceSelected;
+    [ObservableProperty] private Brush _volumeBarBrush;
+    [ObservableProperty] private bool _progressBarColorChangeEnabled;
+    [ObservableProperty] private int _currentVolume;
+    [ObservableProperty] private int _redThresholdLinePosition;
+    [ObservableProperty] private int _yellowThresholdLinePosition;
+    [ObservableProperty] private int _redThresholdVolume;
+    [ObservableProperty] private bool _redPushNotificationEnabled;
+    [ObservableProperty] private bool _redSoundNotificationEnabled;
+    [ObservableProperty] private int _redSoundNotificationVolume;
+    [ObservableProperty] private bool _yellowThresholdEnabled;
+    [ObservableProperty] private int _yellowThresholdVolume;
+    [ObservableProperty] private bool _yellowPushNotificationEnabled;
+    [ObservableProperty] private bool _yellowSoundNotificationEnabled;
+    [ObservableProperty] private int _yellowSoundNotificationVolume;
+    [ObservableProperty] private bool _launchOnStartup;
+    [ObservableProperty] private IEnumerable<string> _audioDeviceNames;
+    [ObservableProperty] private string _selectedAudioDevice;
     [ObservableProperty] private IEnumerable<string> _localeList;
-    [ObservableProperty] private string _localeSelected;
+    [ObservableProperty] private string _selectedLocale;
     #endregion
 
     public SettingsViewModel(
@@ -66,7 +65,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _trayIconManager = trayIconManager;
         _userSettingsService = userSettingsService;
 
-        VolumeBarSizeChangedCommand = new RelayCommand<double>(OnVolumeBarSizeChanged);
+        VolumeBarSizeChangedCommand = new RelayCommand<double>(OnProgressBarSizeChanged);
 
         InitializeTimers();
         InitializeAudioMonitoring();
@@ -125,31 +124,32 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         // User
 
-        ChangeBarColor = _userSettings.ChangeProgressBarColorEnabled;
-        StartWithSystem = _userSettings.StartWithSystemEnabled;
+        ProgressBarColorChangeEnabled = _userSettings.IsProgressBarColorChangeEnabled;
+        LaunchOnStartup = _userSettings.LaunchOnStartup;
 
         // Locale
 
         LocaleList = App.SupportedCultures.Select(a => a.NativeName);
 
         var localeNameList = App.SupportedCultures.Select(a => a.Name);
-        if (localeNameList.Contains(_userSettings.Locale))
+        if (localeNameList.Contains(_userSettings.SelectedLocale))
         {
-            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.Locale);
-            LocaleSelected = locale.NativeName;
+            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.SelectedLocale);
+            SelectedLocale = locale.NativeName;
         }
         else
         {
-            var defaultLocaleName = _userSettingsService.GetDefaultUserSettings().Locale;
-            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.Locale);
-            LocaleSelected = locale.NativeName;
+            var defaultLocaleName = _userSettingsService.GetDefaultUserSettings().SelectedLocale;
+            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.SelectedLocale);
+            SelectedLocale = locale.NativeName;
         }
 
-        OnLocaleSelectedChanged(LocaleSelected);
+        OnSelectedLocaleChanged(SelectedLocale);
 
         // Devices
         // TODO: New Audio Monitoring
-
+        // UpdateBindedValues(_userSettings.DeviceProfiles[CurrentDeviceName])
+        
         await _userSettingsService.SaveSettings(_userSettings);
     }
 
@@ -174,6 +174,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private void SaveCurrentDeviceSettings()
     {
         // TODO: New Audio Monitoring
+        UpdateBindedValues();
         ResetSaveDebounceTimer();
     }
 
@@ -192,18 +193,31 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     #region UI
 
+    private void UpdateBindedValues()
+    {
+        RedThresholdVolume = _currentDeviceSettings.RedThresholdVolume;
+        YellowThresholdVolume = _currentDeviceSettings.YellowThresholdVolume;
+        YellowThresholdEnabled = _currentDeviceSettings.IsYellowThresholdEnabled;
+        RedPushNotificationEnabled = _currentDeviceSettings.IsRedPushNotificationEnabled;
+        RedSoundNotificationEnabled = _currentDeviceSettings.IsRedSoundNotificationEnabled;
+        RedSoundNotificationVolume = _currentDeviceSettings.RedSoundNotificationVolume;
+        YellowPushNotificationEnabled = _currentDeviceSettings.IsYellowPushNotificationEnabled;
+        YellowSoundNotificationEnabled = _currentDeviceSettings.IsYellowSoundNotificationEnabled;
+        YellowSoundNotificationVolume = _currentDeviceSettings.YellowSoundNotificationVolume;
+    }
+
     private void UpdateVolumeProgressBarUI(object sender, EventArgs e)
     {
-        VolumeCurrentValue = (int)(_latestAudioLevel * 100);
+        CurrentVolume = (int)(_latestAudioLevel * 100);
     }
 
     private void UpdateThresholdLinePositions()
     {
-        VolumeBarRedThresholdLinePosition = (int)(VolumeRedThreshold * _volumeBarWidth / 100);
-        VolumeBarYellowThresholdLinePosition = (int)(VolumeYellowThreshold * _volumeBarWidth / 100);
+        RedThresholdLinePosition = (int)(RedThresholdVolume * _volumeBarWidth / 100);
+        YellowThresholdLinePosition = (int)(YellowThresholdVolume * _volumeBarWidth / 100);
     }
 
-    private void OnVolumeBarSizeChanged(double volumeBarWidth)
+    private void OnProgressBarSizeChanged(double volumeBarWidth)
     {
         _volumeBarWidth = volumeBarWidth;
         UpdateThresholdLinePositions();
@@ -213,125 +227,115 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     #region Property Changed Handlers
 
-    partial void OnVolumeCurrentValueChanged(int oldValue, int newValue)
+    partial void OnCurrentVolumeChanged(int value)
     {
-        if (!ChangeBarColor)
+        if (!ProgressBarColorChangeEnabled)
         {
-            VolumeBarColor = System.Windows.SystemColors.AccentColorBrush;
+            VolumeBarBrush = System.Windows.SystemColors.AccentColorBrush;
             return;
         }
 
-        if (newValue <= VolumeRedThreshold)
+        if (value <= RedThresholdVolume)
         {
-            if (ThresholdYellowEnabled && newValue >= VolumeYellowThreshold)
+            if (YellowThresholdEnabled && value >= YellowThresholdVolume)
             {
-                VolumeBarColor = Brushes.Yellow;
+                VolumeBarBrush = Brushes.Yellow;
             }
             else
             {
-                VolumeBarColor = Brushes.Green;
+                VolumeBarBrush = Brushes.Green;
             }
         }
         else
         {
-            VolumeBarColor = Brushes.Red;
+            VolumeBarBrush = Brushes.Red;
         }
     }
 
-    partial void OnVolumeRedThresholdChanged(int value)
+    partial void OnRedThresholdVolumeChanged(int value)
     {
-        if (ThresholdYellowEnabled && value <= VolumeYellowThreshold)
+        if (YellowThresholdEnabled && value <= YellowThresholdVolume)
         {
-            VolumeYellowThreshold = value - 1;        
+            YellowThresholdVolume = value - 1;        
         }
         UpdateThresholdLinePositions();
 
-        _currentDeviceSettings.VolumeRedThresholdValue = value;
+        _currentDeviceSettings.RedThresholdVolume = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnVolumeYellowThresholdChanged(int value)
+    partial void OnYellowThresholdVolumeChanged(int value)
     {
-        if (ThresholdYellowEnabled && value >= VolumeRedThreshold)
+        if (YellowThresholdEnabled && value >= RedThresholdVolume)
         {
-            VolumeRedThreshold = value + 1;
+            RedThresholdVolume = value + 1;
         }
         UpdateThresholdLinePositions();
 
-        _currentDeviceSettings.VolumeYellowThresholdValue = value;
+        _currentDeviceSettings.YellowThresholdVolume = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnThresholdYellowEnabledChanged(bool value)
+    partial void OnYellowThresholdEnabledChanged(bool value)
     {
         if (value)
         {
-            if (VolumeRedThreshold <= VolumeYellowThreshold)
+            if (RedThresholdVolume <= YellowThresholdVolume)
             {
-                VolumeYellowThreshold = VolumeRedThreshold - 1;
+                YellowThresholdVolume = RedThresholdVolume - 1;
             }
         }
         UpdateThresholdLinePositions();
 
-        _currentDeviceSettings.VolumeYellowThresholdEnabled = value;
+        _currentDeviceSettings.IsYellowThresholdEnabled = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnNotificationRedPushEnabledChanged(bool oldValue, bool newValue)
+    partial void OnRedPushNotificationEnabledChanged(bool value)
     {
-        _currentDeviceSettings.NotificationRedPushEnabled = newValue;
+        _currentDeviceSettings.IsRedPushNotificationEnabled = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnNotificationRedSoundEnabledChanged(bool oldValue, bool newValue)
+    partial void OnRedSoundNotificationEnabledChanged(bool value)
     {
-        _currentDeviceSettings.NotificationRedSoundEnabled = newValue;
+        _currentDeviceSettings.IsRedSoundNotificationEnabled = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnNotificationRedSoundVolumeChanged(int oldValue, int newValue)
+    partial void OnRedSoundNotificationVolumeChanged(int value)
     {
-        _currentDeviceSettings.NotificationRedSoundVolume = newValue;
+        _currentDeviceSettings.RedSoundNotificationVolume = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnNotificationYellowPushEnabledChanged(bool oldValue, bool newValue) 
+    partial void OnYellowPushNotificationEnabledChanged(bool value) 
     {
-        _currentDeviceSettings.NotificationYellowPushEnabled = newValue;
+        _currentDeviceSettings.IsYellowPushNotificationEnabled = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnNotificationYellowSoundEnabledChanged(bool oldValue, bool newValue)
+    partial void OnYellowSoundNotificationEnabledChanged(bool value)
     {
-        _currentDeviceSettings.NotificationYellowSoundEnabled = newValue;
+        _currentDeviceSettings.IsYellowSoundNotificationEnabled = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnNotificationYellowSoundVolumeChanged(int oldValue, int newValue) 
+    partial void OnYellowSoundNotificationVolumeChanged(int value) 
     {
-        _currentDeviceSettings.NotificationYellowSoundVolume = newValue;
+        _currentDeviceSettings.YellowSoundNotificationVolume = value;
         SaveCurrentDeviceSettings();
     }
 
-    partial void OnAudioDeviceSelectedChanged(string value)
+    partial void OnSelectedAudioDeviceChanged(string value)
     {
         // TODO: New Audio Monitoring
 
-        // Update all bound settings
-        VolumeRedThreshold = _currentDeviceSettings.VolumeRedThresholdValue;
-        VolumeYellowThreshold = _currentDeviceSettings.VolumeYellowThresholdValue;
-        ThresholdYellowEnabled = _currentDeviceSettings.VolumeYellowThresholdEnabled;
-        NotificationRedPushEnabled = _currentDeviceSettings.NotificationRedPushEnabled;
-        NotificationRedSoundEnabled = _currentDeviceSettings.NotificationRedSoundEnabled;
-        NotificationRedSoundVolume = _currentDeviceSettings.NotificationRedSoundVolume;
-        NotificationYellowPushEnabled = _currentDeviceSettings.NotificationYellowPushEnabled;
-        NotificationYellowSoundEnabled = _currentDeviceSettings.NotificationYellowSoundEnabled;
-        NotificationYellowSoundVolume = _currentDeviceSettings.NotificationYellowSoundVolume;
-
+        UpdateBindedValues();
         ResetSaveDebounceTimer();
     }
 
-    partial void OnLocaleSelectedChanged(string value)
+    partial void OnSelectedLocaleChanged(string value)
     {
         var selectedCulture = App.SupportedCultures.FirstOrDefault(c => c.NativeName == value);
         if (selectedCulture != null)
@@ -339,20 +343,20 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             App.ApplyCulture(selectedCulture);
         }
 
-        _userSettings.Locale = selectedCulture.Name;
+        _userSettings.SelectedLocale = selectedCulture.Name;
 
         ResetSaveDebounceTimer();
     }
 
-    partial void OnStartWithSystemChanged(bool oldValue, bool newValue) 
+    partial void OnLaunchOnStartupChanged(bool value) 
     {
-        _userSettings.StartWithSystemEnabled = newValue;
+        _userSettings.LaunchOnStartup = value;
         ResetSaveDebounceTimer();
     }
 
-    partial void OnChangeBarColorChanged(bool oldValue, bool newValue)
+    partial void OnProgressBarColorChangeEnabledChanged(bool value)
     {
-        _userSettings.ChangeProgressBarColorEnabled = newValue;
+        _userSettings.IsProgressBarColorChangeEnabled = value;
         ResetSaveDebounceTimer();
     }
 

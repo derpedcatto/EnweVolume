@@ -119,11 +119,11 @@ public class UserSettingsService : IUserSettingsService
         return new UserSettings()
         {
             DeviceProfiles = [],
-            CurrentDeviceName = string.Empty,
-            CurrentTheme = App.DefaultThemeName,
-            ChangeProgressBarColorEnabled = true,
-            StartWithSystemEnabled = true,
-            Locale = appCulture.Name
+            CurrentDeviceId = string.Empty,
+            Theme = App.DefaultThemeName,
+            IsProgressBarColorChangeEnabled = true,
+            LaunchOnStartup = true,
+            SelectedLocale = appCulture.Name
         };
     }
 
@@ -132,15 +132,15 @@ public class UserSettingsService : IUserSettingsService
         return new DeviceSettings()
         {
             AudioDeviceName = deviceName,
-            VolumeRedThresholdValue = 80,
-            VolumeYellowThresholdValue = 65,
-            VolumeYellowThresholdEnabled = false,
-            NotificationRedPushEnabled = true,
-            NotificationRedSoundEnabled = false,
-            NotificationRedSoundVolume = 50,
-            NotificationYellowPushEnabled = false,
-            NotificationYellowSoundEnabled = false,
-            NotificationYellowSoundVolume = 50,
+            RedThresholdVolume = 80,
+            YellowThresholdVolume = 65,
+            IsYellowThresholdEnabled = false,
+            IsRedPushNotificationEnabled = true,
+            IsRedSoundNotificationEnabled = false,
+            RedSoundNotificationVolume = 50,
+            IsYellowPushNotificationEnabled = false,
+            IsYellowSoundNotificationEnabled = false,
+            YellowSoundNotificationVolume = 50,
         };
     }
 

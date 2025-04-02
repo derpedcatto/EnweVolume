@@ -3,11 +3,11 @@
 public class UserSettings
 {
     public Dictionary<string, DeviceSettings> DeviceProfiles { get; set; } = new();
-    public string CurrentDeviceName { get; set; } = string.Empty;
-    public bool ChangeProgressBarColorEnabled { get; set; }
-    public bool StartWithSystemEnabled { get; set; }
-    public string CurrentTheme { get; set; } = string.Empty;
-    public string Locale { get; set; } = string.Empty;
+    public string CurrentDeviceId { get; set; } = string.Empty;
+    public bool IsProgressBarColorChangeEnabled { get; set; }
+    public bool LaunchOnStartup { get; set; }
+    public string Theme { get; set; } = string.Empty;
+    public string SelectedLocale { get; set; } = string.Empty;
 
     public override bool Equals(object? obj)
     {
@@ -15,20 +15,20 @@ public class UserSettings
             return false;
 
         UserSettings other = (UserSettings)obj;
-        return ChangeProgressBarColorEnabled == other.ChangeProgressBarColorEnabled &&
-               StartWithSystemEnabled == other.StartWithSystemEnabled &&
-               CurrentTheme == other.CurrentTheme &&
-               Locale == other.Locale &&
+        return IsProgressBarColorChangeEnabled == other.IsProgressBarColorChangeEnabled &&
+               LaunchOnStartup == other.LaunchOnStartup &&
+               Theme == other.Theme &&
+               SelectedLocale == other.SelectedLocale &&
                DeviceProfiles.SequenceEqual(other.DeviceProfiles);
     }
 
     public override int GetHashCode()
     {
         return HashCode.Combine(
-            ChangeProgressBarColorEnabled,
-            StartWithSystemEnabled,
-            CurrentTheme,
-            Locale,
+            IsProgressBarColorChangeEnabled,
+            LaunchOnStartup,
+            Theme,
+            SelectedLocale,
             DeviceProfiles.Aggregate(0, (hash, kvp) => HashCode.Combine(hash, kvp.Key.GetHashCode(), kvp.Value.GetHashCode()))
         );
     }
