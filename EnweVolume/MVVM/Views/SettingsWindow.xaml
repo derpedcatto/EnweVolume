@@ -40,26 +40,26 @@
                     <Grid Grid.ColumnSpan="3" Margin="0,10,0,5">
                         <ProgressBar
                             Height="20"
-                            Foreground="{Binding VolumeBarColor}"
+                            Foreground="{Binding VolumeBarBrush}"
                             Maximum="100"
                             Minimum="0"
                             SizeChanged="VolumeBar_SizeChanged"
-                            Value="{Binding VolumeCurrentValue}" />
+                            Value="{Binding CurrentVolume}" />
                         <Line
                             VerticalAlignment="Center"
                             Stroke="Red"
                             StrokeThickness="2"
-                            X1="{Binding VolumeBarRedThresholdLinePosition}"
-                            X2="{Binding VolumeBarRedThresholdLinePosition}"
+                            X1="{Binding RedThresholdLinePosition}"
+                            X2="{Binding RedThresholdLinePosition}"
                             Y1="0"
                             Y2="20" />
                         <Line
                             VerticalAlignment="Center"
                             Stroke="Yellow"
                             StrokeThickness="2"
-                            Visibility="{Binding ThresholdYellowEnabled, Converter={StaticResource BooleanVisibilityConverter}}"
-                            X1="{Binding VolumeBarYellowThresholdLinePosition}"
-                            X2="{Binding VolumeBarYellowThresholdLinePosition}"
+                            Visibility="{Binding YellowThresholdEnabled, Converter={StaticResource BooleanVisibilityConverter}}"
+                            X1="{Binding YellowThresholdLinePosition}"
+                            X2="{Binding YellowThresholdLinePosition}"
                             Y1="0"
                             Y2="20" />
                     </Grid>
@@ -78,7 +78,7 @@
                             Grid.Column="1"
                             HorizontalContentAlignment="Center"
                             VerticalContentAlignment="Top"
-                            Content="{Binding VolumeCurrentValue}" />
+                            Content="{Binding CurrentVolume}" />
                         <Label
                             Grid.Column="2"
                             HorizontalContentAlignment="Right"
@@ -89,7 +89,7 @@
                         Grid.Row="2"
                         Grid.ColumnSpan="3"
                         VerticalContentAlignment="Center"
-                        IsChecked="{Binding ChangeBarColor}">
+                        IsChecked="{Binding ProgressBarColorChangeEnabled}">
                         <TextBlock Text="{DynamicResource Label_ChangeBarColor}" TextWrapping="Wrap" />
                     </CheckBox>
                 </Grid>
@@ -123,7 +123,7 @@
                             Grid.Row="1"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="{Binding VolumeRedThreshold}" />
+                            Content="{Binding RedThresholdVolume}" />
                         <Slider
                             Grid.Row="1"
                             Grid.Column="1"
@@ -132,7 +132,7 @@
                             Minimum="2"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="{Binding VolumeRedThreshold}" />
+                            Value="{Binding RedThresholdVolume}" />
                     </Grid>
                     <!--  Notification  -->
                     <Grid Grid.Row="1">
@@ -158,7 +158,7 @@
                             Grid.ColumnSpan="3"
                             Margin="0,0,0,5"
                             VerticalContentAlignment="Center"
-                            IsChecked="{Binding NotificationRedPushEnabled}">
+                            IsChecked="{Binding RedPushNotificationEnabled}">
                             <TextBlock Text="{DynamicResource Label_SendPushNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <CheckBox
@@ -166,7 +166,7 @@
                             Grid.ColumnSpan="2"
                             Margin="0,0,0,5"
                             VerticalContentAlignment="Center"
-                            IsChecked="{Binding NotificationRedSoundEnabled}">
+                            IsChecked="{Binding RedSoundNotificationEnabled}">
                             <TextBlock Text="{DynamicResource Label_PlaySoundNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <Button
@@ -176,23 +176,23 @@
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
                             Content="{DynamicResource Label_TestVolume}"
-                            IsEnabled="{Binding NotificationRedSoundEnabled}" />
+                            IsEnabled="{Binding RedSoundNotificationEnabled}" />
                         <Label
                             Grid.Row="3"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="{Binding NotificationRedSoundVolume}" />
+                            Content="{Binding RedSoundNotificationVolume}" />
                         <Slider
                             Grid.Row="3"
                             Grid.Column="1"
                             Grid.ColumnSpan="2"
-                            IsEnabled="{Binding NotificationRedSoundEnabled}"
+                            IsEnabled="{Binding RedSoundNotificationEnabled}"
                             IsSnapToTickEnabled="True"
                             Maximum="100"
                             Minimum="1"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="{Binding NotificationRedSoundVolume}" />
+                            Value="{Binding RedSoundNotificationVolume}" />
                     </Grid>
                 </Grid>
             </GroupBox>
@@ -211,7 +211,7 @@
                     <CheckBox
                         Margin="0,5,0,20"
                         VerticalContentAlignment="Center"
-                        IsChecked="{Binding ThresholdYellowEnabled}">
+                        IsChecked="{Binding YellowThresholdEnabled}">
                         <Label Content="{DynamicResource Label_EnableYellowThreshold}" />
                     </CheckBox>
                     <!--  Volume Threshold  -->
@@ -234,17 +234,17 @@
                             Grid.Row="1"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="{Binding VolumeYellowThreshold}" />
+                            Content="{Binding YellowThresholdVolume}" />
                         <Slider
                             Grid.Row="1"
                             Grid.Column="1"
-                            IsEnabled="{Binding ThresholdYellowEnabled}"
+                            IsEnabled="{Binding YellowThresholdEnabled}"
                             IsSnapToTickEnabled="True"
                             Maximum="99"
                             Minimum="1"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="{Binding VolumeYellowThreshold}" />
+                            Value="{Binding YellowThresholdVolume}" />
                     </Grid>
                     <!--  Notification  -->
                     <Grid Grid.Row="2">
@@ -270,8 +270,8 @@
                             Grid.ColumnSpan="3"
                             Margin="0,0,0,5"
                             VerticalContentAlignment="Center"
-                            IsChecked="{Binding NotificationYellowPushEnabled}"
-                            IsEnabled="{Binding ThresholdYellowEnabled}">
+                            IsChecked="{Binding YellowPushNotificationEnabled}"
+                            IsEnabled="{Binding YellowThresholdEnabled}">
                             <TextBlock Text="{DynamicResource Label_SendPushNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <CheckBox
@@ -279,8 +279,8 @@
                             Grid.ColumnSpan="2"
                             Margin="0,0,0,5"
                             VerticalContentAlignment="Center"
-                            IsChecked="{Binding NotificationYellowSoundEnabled}"
-                            IsEnabled="{Binding ThresholdYellowEnabled}">
+                            IsChecked="{Binding YellowSoundNotificationEnabled}"
+                            IsEnabled="{Binding YellowThresholdEnabled}">
                             <TextBlock Text="{DynamicResource Label_PlaySoundNotification}" TextWrapping="Wrap" />
                         </CheckBox>
                         <Button
@@ -292,8 +292,8 @@
                             Content="{DynamicResource Label_TestVolume}">
                             <Button.IsEnabled>
                                 <MultiBinding Converter="{StaticResource AndConverter}">
-                                    <Binding Path="NotificationYellowSoundEnabled" />
-                                    <Binding Path="ThresholdYellowEnabled" />
+                                    <Binding Path="YellowSoundNotificationEnabled" />
+                                    <Binding Path="YellowThresholdEnabled" />
                                 </MultiBinding>
                             </Button.IsEnabled>
                         </Button>
@@ -301,7 +301,7 @@
                             Grid.Row="3"
                             HorizontalContentAlignment="Left"
                             VerticalContentAlignment="Center"
-                            Content="{Binding NotificationYellowSoundVolume}" />
+                            Content="{Binding YellowSoundNotificationVolume}" />
                         <Slider
                             Grid.Row="3"
                             Grid.Column="1"
@@ -311,11 +311,11 @@
                             Minimum="1"
                             TickFrequency="1"
                             TickPlacement="None"
-                            Value="{Binding NotificationYellowSoundVolume}">
+                            Value="{Binding YellowSoundNotificationVolume}">
                             <Slider.IsEnabled>
                                 <MultiBinding Converter="{StaticResource AndConverter}">
-                                    <Binding Path="NotificationYellowSoundEnabled" />
-                                    <Binding Path="ThresholdYellowEnabled" />
+                                    <Binding Path="YellowSoundNotificationEnabled" />
+                                    <Binding Path="YellowThresholdEnabled" />
                                 </MultiBinding>
                             </Slider.IsEnabled>
                         </Slider>
@@ -335,21 +335,21 @@
                     <CheckBox
                         Margin="0,0,0,20"
                         VerticalContentAlignment="Center"
-                        IsChecked="{Binding StartWithSystem}">
+                        IsChecked="{Binding LaunchOnStartup}">
                         <TextBlock Text="{DynamicResource Label_StartWithSystem}" TextWrapping="Wrap" />
                     </CheckBox>
                     <Label Grid.Row="1" Content="{DynamicResource Label_CurrentAudioDevice}" />
                     <ComboBox
                         Grid.Row="2"
                         Margin="0,0,0,20"
-                        ItemsSource="{Binding AudioDeviceNamesList}"
-                        SelectedValue="{Binding AudioDeviceSelected}" />
+                        ItemsSource="{Binding AudioDeviceNames}"
+                        SelectedValue="{Binding SelectedAudioDevice}" />
                     <Label Grid.Row="3" Content="{DynamicResource Label_AppLocale}" />
                     <ComboBox
                         Grid.Row="4"
                         Margin="0,0,0,30"
                         ItemsSource="{Binding LocaleList}"
-                        SelectedValue="{Binding LocaleSelected}" />
+                        SelectedValue="{Binding SelectedLocale}" />
                     <Button
                         Grid.Row="5"
                         HorizontalAlignment="Stretch"
