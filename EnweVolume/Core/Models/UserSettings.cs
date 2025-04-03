@@ -4,6 +4,7 @@ public class UserSettings
 {
     public Dictionary<string, DeviceSettings> DeviceProfiles { get; set; } = new();
     public string CurrentDeviceId { get; set; } = string.Empty;
+    public bool IsDefaultAudioDevice { get; set; }
     public bool IsProgressBarColorChangeEnabled { get; set; }
     public bool LaunchOnStartup { get; set; }
     public string Theme { get; set; } = string.Empty;
@@ -16,6 +17,7 @@ public class UserSettings
 
         UserSettings other = (UserSettings)obj;
         return IsProgressBarColorChangeEnabled == other.IsProgressBarColorChangeEnabled &&
+               IsDefaultAudioDevice == other.IsDefaultAudioDevice &&
                LaunchOnStartup == other.LaunchOnStartup &&
                Theme == other.Theme &&
                SelectedLocale == other.SelectedLocale &&
@@ -26,6 +28,7 @@ public class UserSettings
     {
         return HashCode.Combine(
             IsProgressBarColorChangeEnabled,
+            IsDefaultAudioDevice,
             LaunchOnStartup,
             Theme,
             SelectedLocale,

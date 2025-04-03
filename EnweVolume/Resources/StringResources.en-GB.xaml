@@ -25,4 +25,7 @@
     <system:String x:Key="Label_CurrentAudioDevice">Current Audio Device</system:String>
     <system:String x:Key="Label_AppLocale">App Locale</system:String>
     <system:String x:Key="Label_ThemeSoundSettings">Theme / Sound Settings</system:String>
+
+    <!--  Other  -->
+    <system:String x:Key="String_DefaultAudioDevice">Default Audio Device</system:String>
 </ResourceDictionary>

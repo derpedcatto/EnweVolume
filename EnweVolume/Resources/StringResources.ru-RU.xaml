@@ -25,4 +25,7 @@
     <system:String x:Key="Label_CurrentAudioDevice">Текущее аудиоустройство</system:String>
     <system:String x:Key="Label_AppLocale">Язык приложения</system:String>
     <system:String x:Key="Label_ThemeSoundSettings">Настройки темы / звука</system:String>
+
+    <!--  Other  -->
+    <system:String x:Key="String_DefaultAudioDevice">По умолчанию</system:String>
 </ResourceDictionary>

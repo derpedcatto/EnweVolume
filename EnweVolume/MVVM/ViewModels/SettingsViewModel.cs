@@ -11,6 +11,7 @@ namespace EnweVolume.MVVM.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject, IDisposable
 {
+    private readonly string RESOURCE_KEY_DEFAULT_AUDIO_DEVICE = "String_DefaultAudioDevice";
     private readonly int SAVE_DEBOUNCE_TIMER_INTERVAL = 1000;
     private readonly int AUDIO_MONITORING_POLLING_RATE = 50;
     private readonly int UI_UPDATE_TIMER_INTERVAL = 50;
@@ -22,7 +23,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly IUserSettingsService _userSettingsService;
 
     private UserSettings _userSettings;
-    private DeviceSettings _currentDeviceSettings;
+    private DeviceSettings _deviceSettings;
     private DispatcherTimer _uiUpdateTimer;
     private DispatcherTimer _saveDebounceTimer;
     private float _latestAudioLevel;
@@ -66,16 +67,66 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _userSettingsService = userSettingsService;
 
         VolumeBarSizeChangedCommand = new RelayCommand<double>(OnProgressBarSizeChanged);
-
-        InitializeTimers();
-        InitializeAudioMonitoring();
     }
 
     #region Initializers
 
     public async Task Initialize()
     {
+        InitializeTimers();
         await InitializeUserSettings();
+        await InitializeDeviceSettings();
+        InitializeLocale();
+        InitializeAudioMonitoring();
+    }
+
+    private async Task InitializeUserSettings()
+    {
+        /* Fetching settings */
+        var userSettingsResult = await _userSettingsService.GetSettings();
+        if (userSettingsResult.IsSuccess && userSettingsResult.Value != null)
+        {
+            _userSettings = userSettingsResult.Value;
+        }
+        else
+        {
+            _userSettings = _userSettingsService.GetDefaultUserSettings();
+            await _userSettingsService.SaveSettings(_userSettings);
+            // TODO: Notify that settings have not been loaded
+        }
+
+        ProgressBarColorChangeEnabled = _userSettings.IsProgressBarColorChangeEnabled;
+        LaunchOnStartup = _userSettings.LaunchOnStartup;
+    }
+
+    // ?
+    // TODO: More complex checks
+    private async Task InitializeDeviceSettings()
+    {
+        bool useDefaultAudioDevice;
+        useDefaultAudioDevice = _userSettings.IsDefaultAudioDevice;
+        useDefaultAudioDevice = string.IsNullOrEmpty(_userSettings.CurrentDeviceId);
+
+        if (useDefaultAudioDevice)
+        {
+            _audioMonitorService.SetDeviceDefault();
+
+            var currentDeviceId = _audioMonitorService.GetCurrentDeviceId();
+            if (string.IsNullOrEmpty(currentDeviceId))
+            {
+                return;
+            }
+            _userSettings.CurrentDeviceId = currentDeviceId;
+
+            FetchCurrentAudioDeviceSettings();
+        }
+        else
+        {
+            _audioMonitorService.SetDeviceById(_userSettings.CurrentDeviceId);
+            FetchCurrentAudioDeviceSettings();
+        }
+
+        OnAudioDevicesChanged();
     }
 
     private void InitializeAudioMonitoring()
@@ -105,60 +156,30 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _uiUpdateTimer.Start();
     }
 
-    private async Task InitializeUserSettings()
+    private void InitializeLocale()
     {
-        /* Fetching settings */
-        var userSettingsResult = await _userSettingsService.GetSettings();
-        if (userSettingsResult.IsSuccess && userSettingsResult.Value != null)
-        {
-            _userSettings = userSettingsResult.Value;
-        }
-        else
-        {
-            _userSettings = _userSettingsService.GetDefaultUserSettings();
-
-            // TODO: Notify that settings have not been loaded
-        }
-
-        /* Applying settings */
-
-        // User
-
-        ProgressBarColorChangeEnabled = _userSettings.IsProgressBarColorChangeEnabled;
-        LaunchOnStartup = _userSettings.LaunchOnStartup;
-
-        // Locale
-
         LocaleList = App.SupportedCultures.Select(a => a.NativeName);
 
         var localeNameList = App.SupportedCultures.Select(a => a.Name);
-        if (localeNameList.Contains(_userSettings.SelectedLocale))
-        {
-            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.SelectedLocale);
-            SelectedLocale = locale.NativeName;
-        }
-        else
+
+        if (!localeNameList.Contains(_userSettings.SelectedLocale))
         {
             var defaultLocaleName = _userSettingsService.GetDefaultUserSettings().SelectedLocale;
-            var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.SelectedLocale);
-            SelectedLocale = locale.NativeName;
         }
+        var locale = App.SupportedCultures.FirstOrDefault(a => a.Name == _userSettings.SelectedLocale);
+        SelectedLocale = locale!.NativeName;
 
         OnSelectedLocaleChanged(SelectedLocale);
-
-        // Devices
-        // TODO: New Audio Monitoring
-        // UpdateBindedValues(_userSettings.DeviceProfiles[CurrentDeviceName])
-        
-        await _userSettingsService.SaveSettings(_userSettings);
     }
 
     #endregion
 
+    // ? +
     private async Task SaveUserSettings()
     {
         try
         {
+            SaveCurrentAudioDeviceProfile();
             var result = await _userSettingsService.SaveSettings(_userSettings);
             if (!result.IsSuccess)
             {
@@ -171,39 +192,73 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void SaveCurrentDeviceSettings()
-    {
-        // TODO: New Audio Monitoring
-        UpdateBindedValues();
-        ResetSaveDebounceTimer();
-    }
-
     private void ResetSaveDebounceTimer()
     {
         _saveDebounceTimer.Stop();
         _saveDebounceTimer.Start();
     }
 
-    private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
+    // ? +
+    private void SaveCurrentAudioDeviceProfile()
+    {
+        _userSettings.DeviceProfiles[_userSettings.CurrentDeviceId] = _deviceSettings;
+        ResetSaveDebounceTimer();
+    }
 
+    // ? +
+    private void FetchCurrentAudioDeviceSettings()
+    {
+        var deviceId = _userSettings.CurrentDeviceId;
+        _userSettings.DeviceProfiles.TryGetValue(deviceId, out _deviceSettings!);
+        if (_deviceSettings == null)
+        {
+            _deviceSettings = _userSettingsService.GetDefaultDeviceSettings(deviceId);
+            _userSettings.DeviceProfiles.Add(deviceId, _deviceSettings);
+        }
+        UpdateBindedDeviceValues();
+    }
+
+    private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
+    
+    // ? +
     private void OnAudioDevicesChanged()
     {
-        // TODO: New Audio Monitoring
+        var deviceList = new List<string>
+        {
+            App.GetString(RESOURCE_KEY_DEFAULT_AUDIO_DEVICE),
+        };
+        deviceList = deviceList.Concat(_audioMonitorService.GetAllDevicesName()).ToList();
+
+        AudioDeviceNames = deviceList;
+
+        if (_userSettings.IsDefaultAudioDevice || !deviceList.Contains(SelectedAudioDevice))
+        {
+            SelectedAudioDevice = deviceList[0];
+            _audioMonitorService.SetDeviceDefault();
+            _userSettings.CurrentDeviceId = _audioMonitorService.GetCurrentDeviceId();
+        }
+        else
+        {
+            _userSettings.IsDefaultAudioDevice = false;
+        }
+
+        UpdateBindedDeviceValues();
     }
 
     #region UI
 
-    private void UpdateBindedValues()
+    // ? +
+    private void UpdateBindedDeviceValues()
     {
-        RedThresholdVolume = _currentDeviceSettings.RedThresholdVolume;
-        YellowThresholdVolume = _currentDeviceSettings.YellowThresholdVolume;
-        YellowThresholdEnabled = _currentDeviceSettings.IsYellowThresholdEnabled;
-        RedPushNotificationEnabled = _currentDeviceSettings.IsRedPushNotificationEnabled;
-        RedSoundNotificationEnabled = _currentDeviceSettings.IsRedSoundNotificationEnabled;
-        RedSoundNotificationVolume = _currentDeviceSettings.RedSoundNotificationVolume;
-        YellowPushNotificationEnabled = _currentDeviceSettings.IsYellowPushNotificationEnabled;
-        YellowSoundNotificationEnabled = _currentDeviceSettings.IsYellowSoundNotificationEnabled;
-        YellowSoundNotificationVolume = _currentDeviceSettings.YellowSoundNotificationVolume;
+        RedThresholdVolume = _deviceSettings.RedThresholdVolume;
+        YellowThresholdVolume = _deviceSettings.YellowThresholdVolume;
+        YellowThresholdEnabled = _deviceSettings.IsYellowThresholdEnabled;
+        RedPushNotificationEnabled = _deviceSettings.IsRedPushNotificationEnabled;
+        RedSoundNotificationEnabled = _deviceSettings.IsRedSoundNotificationEnabled;
+        RedSoundNotificationVolume = _deviceSettings.RedSoundNotificationVolume;
+        YellowPushNotificationEnabled = _deviceSettings.IsYellowPushNotificationEnabled;
+        YellowSoundNotificationEnabled = _deviceSettings.IsYellowSoundNotificationEnabled;
+        YellowSoundNotificationVolume = _deviceSettings.YellowSoundNotificationVolume;
     }
 
     private void UpdateVolumeProgressBarUI(object sender, EventArgs e)
@@ -260,8 +315,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         UpdateThresholdLinePositions();
 
-        _currentDeviceSettings.RedThresholdVolume = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.RedThresholdVolume = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnYellowThresholdVolumeChanged(int value)
@@ -272,8 +327,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         UpdateThresholdLinePositions();
 
-        _currentDeviceSettings.YellowThresholdVolume = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.YellowThresholdVolume = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnYellowThresholdEnabledChanged(bool value)
@@ -287,54 +342,71 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         UpdateThresholdLinePositions();
 
-        _currentDeviceSettings.IsYellowThresholdEnabled = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.IsYellowThresholdEnabled = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnRedPushNotificationEnabledChanged(bool value)
     {
-        _currentDeviceSettings.IsRedPushNotificationEnabled = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.IsRedPushNotificationEnabled = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnRedSoundNotificationEnabledChanged(bool value)
     {
-        _currentDeviceSettings.IsRedSoundNotificationEnabled = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.IsRedSoundNotificationEnabled = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnRedSoundNotificationVolumeChanged(int value)
     {
-        _currentDeviceSettings.RedSoundNotificationVolume = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.RedSoundNotificationVolume = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnYellowPushNotificationEnabledChanged(bool value) 
     {
-        _currentDeviceSettings.IsYellowPushNotificationEnabled = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.IsYellowPushNotificationEnabled = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnYellowSoundNotificationEnabledChanged(bool value)
     {
-        _currentDeviceSettings.IsYellowSoundNotificationEnabled = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.IsYellowSoundNotificationEnabled = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
     partial void OnYellowSoundNotificationVolumeChanged(int value) 
     {
-        _currentDeviceSettings.YellowSoundNotificationVolume = value;
-        SaveCurrentDeviceSettings();
+        _deviceSettings.YellowSoundNotificationVolume = value;
+        SaveCurrentAudioDeviceProfile();
     }
 
+    // ? +
     partial void OnSelectedAudioDeviceChanged(string value)
     {
-        // TODO: New Audio Monitoring
+        var defaultAudioDeviceName = App.GetString(RESOURCE_KEY_DEFAULT_AUDIO_DEVICE);
 
-        UpdateBindedValues();
+        if (value == defaultAudioDeviceName)
+        {
+            _audioMonitorService.SetDeviceDefault();
+            _userSettings.IsDefaultAudioDevice = true;
+        }
+        else
+        {
+            var newDeviceId = _audioMonitorService.NameToId(value);
+            _audioMonitorService.SetDeviceById(newDeviceId);
+            _userSettings.IsDefaultAudioDevice = false;
+        }
+
+        _userSettings.CurrentDeviceId = _audioMonitorService.GetCurrentDeviceId();
+
+        FetchCurrentAudioDeviceSettings();
+        // UpdateBindedDeviceValues();
         ResetSaveDebounceTimer();
     }
 
+    // ? +
     partial void OnSelectedLocaleChanged(string value)
     {
         var selectedCulture = App.SupportedCultures.FirstOrDefault(c => c.NativeName == value);
@@ -344,6 +416,15 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
 
         _userSettings.SelectedLocale = selectedCulture.Name;
+
+        var newAudioDeviceList = AudioDeviceNames.ToList();
+        newAudioDeviceList[0] = App.GetString(RESOURCE_KEY_DEFAULT_AUDIO_DEVICE);
+        AudioDeviceNames = newAudioDeviceList;
+
+        if (_audioMonitorService.IsUsingDefaultDevice())
+        {
+            SelectedAudioDevice = AudioDeviceNames.First();
+        }
 
         ResetSaveDebounceTimer();
     }

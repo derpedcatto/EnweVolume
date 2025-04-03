@@ -120,6 +120,7 @@ public class UserSettingsService : IUserSettingsService
         {
             DeviceProfiles = [],
             CurrentDeviceId = string.Empty,
+            IsDefaultAudioDevice = true,
             Theme = App.DefaultThemeName,
             IsProgressBarColorChangeEnabled = true,
             LaunchOnStartup = true,
@@ -127,11 +128,11 @@ public class UserSettingsService : IUserSettingsService
         };
     }
 
-    public DeviceSettings GetDefaultDeviceSettings(string deviceName)
+    public DeviceSettings GetDefaultDeviceSettings(string deviceId)
     {
         return new DeviceSettings()
         {
-            AudioDeviceName = deviceName,
+            AudioDeviceId = deviceId,
             RedThresholdVolume = 80,
             YellowThresholdVolume = 65,
             IsYellowThresholdEnabled = false,
