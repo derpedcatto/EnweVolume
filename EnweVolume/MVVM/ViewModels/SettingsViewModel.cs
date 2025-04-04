@@ -103,9 +103,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     // TODO: More complex checks
     private async Task InitializeDeviceSettings()
     {
-        bool useDefaultAudioDevice;
-        useDefaultAudioDevice = _userSettings.IsDefaultAudioDevice;
-        useDefaultAudioDevice = string.IsNullOrEmpty(_userSettings.CurrentDeviceId);
+        bool useDefaultAudioDevice = _userSettings.IsDefaultAudioDevice || string.IsNullOrEmpty(_userSettings.CurrentDeviceId);
 
         if (useDefaultAudioDevice)
         {
@@ -236,6 +234,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             SelectedAudioDevice = deviceList[0];
             _audioMonitorService.SetDeviceDefault();
             _userSettings.CurrentDeviceId = _audioMonitorService.GetCurrentDeviceId();
+            _userSettings.IsDefaultAudioDevice = true;
         }
         else
         {
@@ -402,7 +401,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _userSettings.CurrentDeviceId = _audioMonitorService.GetCurrentDeviceId();
 
         FetchCurrentAudioDeviceSettings();
-        // UpdateBindedDeviceValues();
+        UpdateBindedDeviceValues();
         ResetSaveDebounceTimer();
     }
 
