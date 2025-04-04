@@ -132,7 +132,6 @@ public class UserSettingsService : IUserSettingsService
     {
         return new DeviceSettings()
         {
-            AudioDeviceId = deviceId,
             RedThresholdVolume = 80,
             YellowThresholdVolume = 65,
             IsYellowThresholdEnabled = false,

@@ -2,7 +2,6 @@
 
 public class DeviceSettings
 {
-    public string AudioDeviceId { get; set; } = string.Empty;
     public int RedThresholdVolume { get; set; }
     public int YellowThresholdVolume { get; set; }
     public bool IsYellowThresholdEnabled { get; set; }
@@ -19,8 +18,7 @@ public class DeviceSettings
             return false;
 
         DeviceSettings other = (DeviceSettings)obj;
-        return AudioDeviceId == other.AudioDeviceId &&
-               RedThresholdVolume == other.RedThresholdVolume &&
+        return RedThresholdVolume == other.RedThresholdVolume &&
                YellowThresholdVolume == other.YellowThresholdVolume &&
                IsYellowThresholdEnabled == other.IsYellowThresholdEnabled &&
                IsRedPushNotificationEnabled == other.IsRedPushNotificationEnabled &&
@@ -34,7 +32,6 @@ public class DeviceSettings
     public override int GetHashCode()
     {
         return HashCode.Combine(
-            AudioDeviceId,
             RedThresholdVolume,
             YellowThresholdVolume,
             IsYellowThresholdEnabled,
