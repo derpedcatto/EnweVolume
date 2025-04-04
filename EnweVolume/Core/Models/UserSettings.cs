@@ -17,6 +17,7 @@ public class UserSettings
 
         UserSettings other = (UserSettings)obj;
         return IsProgressBarColorChangeEnabled == other.IsProgressBarColorChangeEnabled &&
+               CurrentDeviceId == other.CurrentDeviceId &&
                IsDefaultAudioDevice == other.IsDefaultAudioDevice &&
                LaunchOnStartup == other.LaunchOnStartup &&
                Theme == other.Theme &&
@@ -28,6 +29,7 @@ public class UserSettings
     {
         return HashCode.Combine(
             IsProgressBarColorChangeEnabled,
+            CurrentDeviceId,
             IsDefaultAudioDevice,
             LaunchOnStartup,
             Theme,
