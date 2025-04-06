@@ -30,6 +30,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private double _volumeBarWidth;
 
     public IRelayCommand<double> VolumeBarSizeChangedCommand { get; private set; }
+    private Action DeviceListChangedAction { get; }
 
     #region Observable Properties
     [ObservableProperty] private Brush _volumeBarBrush;
@@ -67,6 +68,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _userSettingsService = userSettingsService;
 
         VolumeBarSizeChangedCommand = new RelayCommand<double>(OnProgressBarSizeChanged);
+        DeviceListChangedAction = async () => await OnAudioDevicesChanged();
     }
 
     #region Initializers
@@ -131,7 +133,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     {
         _audioMonitorService.InitializeAudioMonitoring(AUDIO_MONITORING_POLLING_RATE);
         _audioMonitorService.VolumeLevelChanged += OnAudioLevelChanged;
-        _audioMonitorService.DeviceListChanged += OnAudioDevicesChanged;
+        _audioMonitorService.DeviceListChanged += DeviceListChangedAction;
     }
 
     private void InitializeTimers()
@@ -177,7 +179,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     {
         try
         {
-            SaveCurrentAudioDeviceProfile();
+            _userSettings.DeviceProfiles[_userSettings.CurrentDeviceId] = _deviceSettings;
             var result = await _userSettingsService.SaveSettings(_userSettings);
             if (!result.IsSuccess)
             {
@@ -197,13 +199,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     }
 
     // ? +
-    private void SaveCurrentAudioDeviceProfile()
-    {
-        _userSettings.DeviceProfiles[_userSettings.CurrentDeviceId] = _deviceSettings;
-        ResetSaveDebounceTimer();
-    }
-
-    // ? +
     private void FetchCurrentAudioDeviceSettings()
     {
         var deviceId = _userSettings.CurrentDeviceId;
@@ -213,13 +208,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             _deviceSettings = _userSettingsService.GetDefaultDeviceSettings(deviceId);
             _userSettings.DeviceProfiles.Add(deviceId, _deviceSettings);
         }
-        UpdateBindedDeviceValues();
     }
 
     private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
     
     // ? +
-    private void OnAudioDevicesChanged()
+    private async Task OnAudioDevicesChanged()
     {
         var deviceList = new List<string>
         {
@@ -231,6 +225,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         if (_userSettings.IsDefaultAudioDevice || !deviceList.Contains(SelectedAudioDevice))
         {
+            await SaveUserSettings();
             SelectedAudioDevice = deviceList[0];
             _audioMonitorService.SetDeviceDefault();
             _userSettings.CurrentDeviceId = _audioMonitorService.GetCurrentDeviceId();
@@ -241,7 +236,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             _userSettings.IsDefaultAudioDevice = false;
         }
 
+        FetchCurrentAudioDeviceSettings();
         UpdateBindedDeviceValues();
+        ResetSaveDebounceTimer();
     }
 
     #region UI
@@ -315,7 +312,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         UpdateThresholdLinePositions();
 
         _deviceSettings.RedThresholdVolume = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnYellowThresholdVolumeChanged(int value)
@@ -327,7 +324,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         UpdateThresholdLinePositions();
 
         _deviceSettings.YellowThresholdVolume = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnYellowThresholdEnabledChanged(bool value)
@@ -342,46 +339,46 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         UpdateThresholdLinePositions();
 
         _deviceSettings.IsYellowThresholdEnabled = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnRedPushNotificationEnabledChanged(bool value)
     {
         _deviceSettings.IsRedPushNotificationEnabled = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnRedSoundNotificationEnabledChanged(bool value)
     {
         _deviceSettings.IsRedSoundNotificationEnabled = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnRedSoundNotificationVolumeChanged(int value)
     {
         _deviceSettings.RedSoundNotificationVolume = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnYellowPushNotificationEnabledChanged(bool value) 
     {
         _deviceSettings.IsYellowPushNotificationEnabled = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnYellowSoundNotificationEnabledChanged(bool value)
     {
         _deviceSettings.IsYellowSoundNotificationEnabled = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
     partial void OnYellowSoundNotificationVolumeChanged(int value) 
     {
         _deviceSettings.YellowSoundNotificationVolume = value;
-        SaveCurrentAudioDeviceProfile();
+        ResetSaveDebounceTimer();
     }
 
-    // ? +
+    // ? + !
     partial void OnSelectedAudioDeviceChanged(string value)
     {
         var defaultAudioDeviceName = App.GetString(RESOURCE_KEY_DEFAULT_AUDIO_DEVICE);
@@ -445,7 +442,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _audioMonitorService.VolumeLevelChanged -= OnAudioLevelChanged;
-        _audioMonitorService.DeviceListChanged -= OnAudioDevicesChanged;
+        _audioMonitorService.DeviceListChanged -= DeviceListChangedAction;
 
         _uiUpdateTimer?.Stop();
 
