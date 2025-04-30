@@ -1,4 +1,5 @@
-﻿using EnweVolume.Core.Interfaces;
+﻿using EnweVolume.Core.Enums;
+using EnweVolume.Core.Interfaces;
 using EnweVolume.Core.Models;
 using System.Globalization;
 using System.IO;
@@ -35,13 +36,19 @@ public class UserSettingsService : IUserSettingsService
                 var generateResult = await GenerateSettings();
                 if (!generateResult.IsSuccess)
                 {
-                    return Result<UserSettings>.Failure(
-                        generateResult.Caption,
-                        generateResult.Message);
+                    return Result<UserSettings>.Failure(generateResult.Error);
                 }
             }
 
             return await DeserializeSettingsFile();
+        }
+        catch (UnauthorizedAccessException uaEx)
+        {
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.AccessForbidden,
+                ErrorCode.AccessDenied,
+                $"Unauthorized permission error: {uaEx.Message}"
+            ));
         }
         finally
         {
@@ -53,58 +60,68 @@ public class UserSettingsService : IUserSettingsService
     {
         if (userSettings == null)
         {
-            return Result.Failure("Invalid Settings", "User settings cannot be null.");
+            return Result.Failure(
+                new Error(ErrorType.Validation, ErrorCode.InvalidUserSettings, "Settings object is null."));
         }
 
         await _fileLock.WaitAsync();
+        string tempFilePath = string.Empty;
         try
         {
-            var tempFileName = Guid.NewGuid().ToString() + ".tmp";
-            var tempFilePath = Path.Combine(_settingsFolderPath, tempFileName);
+            Directory.CreateDirectory(_settingsFolderPath);
+            tempFilePath = Path.Combine(_settingsFolderPath, $"{Guid.NewGuid():N}.tmp");
 
-            try
+            await using (var tmpStream = File.Create(tempFilePath))
             {
-                Directory.CreateDirectory(_settingsFolderPath);
-
-                // Creating temp file
-                await using (var tempStream = File.Create(tempFilePath))
-                {
-                    await JsonSerializer.SerializeAsync(tempStream, userSettings, _jsonSerializerOptions);
-                }
-
-                if (File.Exists(_settingsFilePath))
-                {
-                    File.Replace(tempFilePath, _settingsFilePath, null);
-                }
-                else
-                {
-                    File.Move(tempFilePath, _settingsFilePath);
-                }
-
-                return Result.Success();
+                await JsonSerializer.SerializeAsync(tmpStream, userSettings, _jsonSerializerOptions);
             }
-            catch (Exception ex)
-            {
-                return Result.Failure("Save Failed", $"Failed to save settings: {ex.Message}");
-            }
-            finally
-            {
-                if (File.Exists(tempFilePath))
-                {
-                    try
-                    {
-                        File.Delete(tempFilePath);
-                    }
-                    catch (Exception)
-                    {
-                        // Not doing anything if deleting temp file is not possible
-                        // Logger would go here if necessary but it's an overkill for this app lol
-                    }
-                }
-            }
+
+            if (File.Exists(_settingsFilePath))
+                File.Replace(tempFilePath, _settingsFilePath, null);
+            else
+                File.Move(tempFilePath, _settingsFilePath);
+
+            return Result.Success();
+        }
+        catch (JsonException jsonEx)
+        {
+            return Result.Failure(new Error(
+                ErrorType.Failure,
+                ErrorCode.UserSettingsSaveError,
+                $"Json error: {jsonEx.Message}"
+            ));
+        }
+        catch (UnauthorizedAccessException uaEx)
+        {
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.AccessForbidden,
+                ErrorCode.SettingsDirectoryAccessError,
+                $"Unauthorized permission error: {uaEx.Message}"
+            ));
+        }
+        catch (IOException ioEx)
+        {
+            return Result.Failure(new Error(
+                ErrorType.Failure,
+                ErrorCode.UserSettingsSaveError,
+                $"I/O error: {ioEx.Message}"
+            ));
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(new Error(
+                ErrorType.Failure,
+                ErrorCode.UserSettingsSaveError,
+                ex.Message
+            ));
         }
         finally
         {
+            if (tempFilePath != null && File.Exists(tempFilePath))
+            {
+                try { File.Delete(tempFilePath); }
+                catch { }
+            }
             _fileLock.Release();
         }
     }
@@ -149,14 +166,8 @@ public class UserSettingsService : IUserSettingsService
         try
         {
             using FileStream openStream = File.OpenRead(_settingsFilePath);
-            var settings = await JsonSerializer.DeserializeAsync<UserSettings>(openStream);
-
-            if (settings == null)
-            {
-                return Result<UserSettings>.Failure(
-                    "Deserialization Failed",
-                    "Settings file could not be deserialized properly.");
-            }
+            var settings = await JsonSerializer.DeserializeAsync<UserSettings>(openStream)
+                ?? throw new JsonException("Deserialized to null");
 
             var defaultSettings = GetDefaultUserSettings();
             var validatedSettings = ValidateSettings(settings);
@@ -168,36 +179,48 @@ public class UserSettingsService : IUserSettingsService
 
             return Result<UserSettings>.Success(settings);
         }
-        catch (JsonException)
+        catch (JsonException jsonEx)
         {
-            // Handling corrupt settings by regenerating file
-            try
+            // Try to regenerate file
+            File.Delete(_settingsFilePath); 
+            var regenerateResult = await GenerateSettings();
+            if (!regenerateResult.IsSuccess)
             {
-                File.Delete(_settingsFilePath); 
-                var regenerateResult = await GenerateSettings();
-                if (!regenerateResult.IsSuccess)
-                {
-                    return Result<UserSettings>.Failure(regenerateResult.Caption, regenerateResult.Message);
-                }
-                // return await DeserializeSettingsFile();
+                var error = new Error(
+                    regenerateResult.Error.ErrorType,
+                    regenerateResult.Error.Code,
+                    regenerateResult.Error.DebugDescription + (" | " + jsonEx.Message));
+
+                return Result<UserSettings>.Failure(error);
             }
-            catch (Exception ex)
-            {
-                return Result<UserSettings>.Failure(
-                    "Settings Recovery Failed",
-                    $"Failed to recover from corrupt settings file: {ex.Message}");
-            }
+            
+            // Recurse once
+            return await DeserializeSettingsFile();
+        }
+        catch (IOException ioEx)
+        {
+            return Result<UserSettings>.Failure(new Error(
+                    ErrorType.Failure,
+                    ErrorCode.UserSettingsLoadError,
+                    ioEx.Message
+                ));
+        }
+        catch (UnauthorizedAccessException uaEx)
+        {
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.AccessForbidden,
+                ErrorCode.AccessDenied,
+                $"Unauthorized permission error: {uaEx.Message}"
+            ));
         }
         catch (Exception ex)
         {
-            return Result<UserSettings>.Failure(
-                "Settings Read Failed",
-                $"Failed to read settings file: {ex.Message}");
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.Failure, 
+                ErrorCode.UserSettingsLoadError,
+                ex.Message
+            ));
         }
-
-        return Result<UserSettings>.Failure(
-            "Unexpected Error",
-            "Unexpected error during deserialization");
     }
 
     private async Task<Result> GenerateSettings()
@@ -205,25 +228,81 @@ public class UserSettingsService : IUserSettingsService
         try
         {
             Directory.CreateDirectory(GetSettingsFolderPath());
-
             var defaultSettings = GetDefaultUserSettings();
 
-            await using FileStream createStream = File.Create(_settingsFilePath);
-            await JsonSerializer.SerializeAsync(createStream, defaultSettings, _jsonSerializerOptions);
+            await using (var stream = File.Create(_settingsFilePath))
+            {
+                await JsonSerializer.SerializeAsync(stream, defaultSettings, _jsonSerializerOptions);
+            }
 
             return Result.Success();
         }
+        catch (JsonException jsonEx)
+        {
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.Failure,
+                ErrorCode.UserSettingsSaveError,
+                $"Json error: {jsonEx.Message}"
+            ));
+        }
+        catch (IOException ioEx)
+        {
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.Failure,
+                ErrorCode.UserSettingsSaveError,
+                $"IO error: {ioEx.Message}"
+            ));
+        }
+        catch (UnauthorizedAccessException uaEx)
+        {
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.AccessForbidden,
+                ErrorCode.AccessDenied,
+                $"Unauthorized permission error: {uaEx.Message}"
+            ));
+        }
         catch (Exception ex)
         {
-            return Result.Failure(
-                "Settings Generation Failed",
-                $"Failed to generate default settings: {ex.Message}");
+            return Result<UserSettings>.Failure(new Error(
+                ErrorType.Failure,
+                ErrorCode.UserSettingsSaveError,
+                $"{ex.Message}"
+            ));
         }
     }
 
     private UserSettings ValidateSettings(UserSettings settings)
     {
-        // TODO: Validation logic
+        var defaultSettings = GetDefaultDeviceSettings(string.Empty);
+
+        foreach (var device in settings.DeviceProfiles.Values)
+        {
+            if (device.RedThresholdVolume < 1 ||
+                device.RedThresholdVolume > 100 ||
+                device.RedThresholdVolume <= device.YellowThresholdVolume)
+            {
+                device.RedThresholdVolume = defaultSettings.RedThresholdVolume;
+            }
+
+            if (device.YellowThresholdVolume < 0 ||
+                device.YellowThresholdVolume > 99 ||
+                device.YellowThresholdVolume >= device.RedThresholdVolume)
+            {
+                device.YellowThresholdVolume = defaultSettings.YellowThresholdVolume;
+            }
+
+            if (device.RedSoundNotificationVolume < 0 ||
+                device.RedSoundNotificationVolume > 100)
+            {
+                device.RedSoundNotificationVolume = defaultSettings.RedSoundNotificationVolume;
+            }
+
+            if (device.YellowSoundNotificationVolume < 0 ||
+                device.YellowSoundNotificationVolume > 100)
+            {
+                device.YellowSoundNotificationVolume = defaultSettings.YellowSoundNotificationVolume;
+            }
+        }
 
         return settings;
     }

@@ -2,4 +2,4 @@
 
 namespace EnweVolume.Core.Models;
 
-public record Error(ErrorCode Code, ErrorType ErrorType, string? DebugDescription = null);
+public record Error(ErrorType ErrorType, ErrorCode Code, string? DebugDescription = null);
