@@ -1,18 +1,20 @@
-﻿namespace EnweVolume.Core.Interfaces;
+﻿using EnweVolume.Core.Models;
+
+namespace EnweVolume.Core.Interfaces;
 
 public interface IAudioMonitorService
 {
-    public void InitializeAudioMonitoring(int polling);
+    public Result InitializeAudioMonitoring(int polling);
     public bool IsUsingDefaultDevice();
-    public float GetLatestAudioLevel();
-    public List<string> GetAllDevicesId();
-    public List<string> GetAllDevicesName();
-    public string GetCurrentDeviceId();
-    public string GetCurrentDeviceName();
-    public void SetDeviceById(string deviceId);
-    public void SetDeviceDefault();
-    public string IdToName(string deviceId);
-    public string NameToId(string deviceFriendlyName);
+    public Result<float> GetLatestAudioLevel();
+    public Result<List<string>> GetAllDevicesId();
+    public Result<List<string>> GetAllDevicesName();
+    public Result<string> GetCurrentDeviceId();
+    public Result<string> GetCurrentDeviceName();
+    public Result SetDeviceById(string deviceId);
+    public Result SetDeviceDefault();
+    public Result<string> IdToName(string deviceId);
+    public Result<string> NameToId(string deviceFriendlyName);
 
     event Action DeviceListChanged;
     event Action DefaultDeviceChanged;

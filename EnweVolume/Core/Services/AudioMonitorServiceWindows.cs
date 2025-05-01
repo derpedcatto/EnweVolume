@@ -1,4 +1,6 @@
-﻿using EnweVolume.Core.Interfaces;
+﻿using EnweVolume.Core.Enums;
+using EnweVolume.Core.Interfaces;
+using EnweVolume.Core.Models;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using System.Windows.Threading;
@@ -27,16 +29,29 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
         _deviceEnumerator.RegisterEndpointNotificationCallback(this);
     }
 
-    public void InitializeAudioMonitoring(int polling)
+    public Result InitializeAudioMonitoring(int polling)
     {
         if (_audioDevice == null)
         {
-            SetDeviceDefault();
+            var result = SetDeviceDefault();
+            if (!result.IsSuccess)
+            {
+                return Result.Failure(result.Error);
+            }
+        }
+        else // ?
+        {
+            var result = SetDeviceById(_audioDevice.ID);
+            if (!result.IsSuccess)
+            {
+                return Result.Failure(result.Error);
+            }
         }
 
         StartTimer(polling);
-
         DeviceListChanged?.Invoke();
+
+        return Result.Success();
     }
 
     public bool IsUsingDefaultDevice()
@@ -47,104 +62,182 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
         }
     }
 
-    public float GetLatestAudioLevel() => _latestAudioLevel;
+    public Result<float> GetLatestAudioLevel()
+    {
+        if (_audioDevice == null)
+        {
+            return Result<float>.Failure(
+                new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
+        }
+        else
+        {
+            return Result<float>.Success(_latestAudioLevel);
+        }
+    }
 
-    public string GetCurrentDeviceId()
+    public Result<string> GetCurrentDeviceId()
     {
         lock (_deviceLock)
         {
             try
             {
-                return _audioDevice?.ID ?? string.Empty;
+                if (_audioDevice == null)
+                {
+                    return Result<string>.Failure(
+                        new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
+                }
+
+                return Result<string>.Success(_audioDevice.ID);
             }
-            catch (Exception)
+            catch (ObjectDisposedException ex)
             {
-                return string.Empty;
+                return Result<string>.Failure(
+                    new Error(ErrorType.Failure, ErrorCode.DeviceDisposed, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure(
+                    new Error(ErrorType.Failure, ErrorCode.Unknown, ex.Message));
             }
         }
     }
 
-    public string GetCurrentDeviceName()
+    public Result<string> GetCurrentDeviceName()
     {
         lock (_deviceLock)
         {
             try
             {
-                return _audioDevice?.DeviceFriendlyName ?? string.Empty;
+                if (_audioDevice == null)
+                {
+                    return Result<string>.Failure(
+                        new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
+                }
+
+                return Result<string>.Success(_audioDevice.DeviceFriendlyName);
             }
-            catch (Exception)
+            catch (ObjectDisposedException ex)
             {
-                return string.Empty;
+                return Result<string>.Failure(
+                    new Error(ErrorType.Failure, ErrorCode.DeviceDisposed, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure(
+                    new Error(ErrorType.Failure, ErrorCode.Unknown, ex.Message));
             }
         }
     }
 
-    public string IdToName(string deviceId)
+    public Result<string> IdToName(string deviceId)
     {
+        if (string.IsNullOrEmpty(deviceId))
+        {
+            return Result<string>.Failure(
+                new Error(ErrorType.NotFound, ErrorCode.InvalidUserSettings));
+        }
+
+        lock (_deviceLock)
+        {
+            try
+            {
+                var device = _deviceEnumerator.GetDevice(deviceId);
+
+                if (device == null)
+                {
+                    return Result<string>.Failure(
+                        new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
+                }
+
+                return Result<string>.Success(device.DeviceFriendlyName);
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure(
+                    new Error(ErrorType.Failure, ErrorCode.Unknown, ex.Message));
+            }
+        }
+    }
+
+    public Result<string> NameToId(string deviceFriendlyName)
+    {
+        if (string.IsNullOrEmpty(deviceFriendlyName))
+        {
+            return Result<string>.Failure(
+                new Error(ErrorType.NotFound, ErrorCode.InvalidUserSettings));
+        }
+
         lock (_deviceLock)
         {
             try
             {
                 var device = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                    .SingleOrDefault(a => a.ID == deviceId);
+                    .SingleOrDefault(a => a.FriendlyName == deviceFriendlyName);
 
-                return device?.DeviceFriendlyName ?? string.Empty;
+                if (device == null)
+                {
+                    return Result<string>.Failure(
+                        new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
+                }
+
+                return Result<string>.Success(device.DeviceFriendlyName);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return string.Empty;
+                return Result<string>.Failure(
+                    new Error(ErrorType.Failure, ErrorCode.Unknown, ex.Message));
             }
         }
     }
 
-    public string NameToId(string deviceFriendlyName)
+    public Result<List<string>> GetAllDevicesId()
     {
-        lock (_deviceLock)
-        {
-            try
-            {
-                var device = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                    .SingleOrDefault(a => a.DeviceFriendlyName == deviceFriendlyName);
-
-                return device?.ID ?? string.Empty;
-            }
-            catch (Exception)
-            {
-                return string.Empty;
-            }
-        }
-    }
-
-    public List<string> GetAllDevicesId()
-    {
-        return _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
+        var list = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
                        .Select(d => d.ID)
                        .ToList() ?? [];
+
+        return Result<List<string>>.Success(list);
     }
 
-    public List<string> GetAllDevicesName()
+    public Result<List<string>> GetAllDevicesName()
     {
-        return _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
+        var list = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
                        .Select(d => d.DeviceFriendlyName)
                        .ToList() ?? [];
+
+        return Result<List<string>>.Success(list);
     }
 
-    public void SetDeviceById(string deviceId)
+    public Result SetDeviceById(string deviceId)
     {
         MMDevice? newDevice;
         try
         {
-            newDevice = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                .FirstOrDefault(d => d.ID == deviceId);
+            var deviceListResult = GetAllDevicesId();
+            if (!deviceListResult.IsSuccess)
+            {
+                return Result<string>.Failure(deviceListResult.Error);
+            }
+
+            var deviceList = deviceListResult.Value;
+
+            newDevice = _deviceEnumerator.GetDevice(deviceId);
         }
-        catch (Exception)
+        catch (ObjectDisposedException ex)
         {
-            return;
+            return Result<string>.Failure(
+                new Error(ErrorType.Failure, ErrorCode.DeviceDisposed, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return Result<string>.Failure(
+                new Error(ErrorType.Failure, ErrorCode.Unknown, ex.Message));
         }
 
         if (newDevice == null)
         {
-            return;
+            return Result<string>.Failure(
+                new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
         }
 
         _volumeCheckTimer?.Stop();
@@ -160,19 +253,27 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
         {
             StartTimer((int)_volumeCheckTimer.Interval.TotalMilliseconds);
         }
+
+        return Result.Success();
     }
 
-    public void SetDeviceDefault()
+    public Result SetDeviceDefault()
     {
         MMDevice? newDevice;
         try
         {
             newDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
         }
-        catch (Exception) 
+        catch (Exception ex)
         {
-            // No devices
-            return;
+            return Result<string>.Failure(
+                new Error(ErrorType.Failure, ErrorCode.Unknown, ex.Message));
+        }
+
+        if (newDevice == null)
+        {
+            return Result<string>.Failure(
+                new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
         }
 
         _volumeCheckTimer?.Stop();
@@ -200,6 +301,8 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
         {
             StartTimer((int)_volumeCheckTimer?.Interval.TotalMilliseconds);
         }
+
+        return Result.Success();
     }
 
     private void CheckAudioLevels(object sender, EventArgs e)
