@@ -16,7 +16,7 @@ public enum ErrorCode
     // Device
     DeviceNotFound = 300,
     DeviceAccessDenied = 301,
-    DefaultDeviceUnavailable = 302,
+    DeviceDisposed = 302,
 
     // Access
     AccessDenied = 400,
