@@ -101,7 +101,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         LaunchOnStartup = _userSettings.LaunchOnStartup;
     }
 
-    // ?
     // TODO: More complex checks
     private async Task InitializeDeviceSettings()
     {
@@ -109,14 +108,19 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         if (useDefaultAudioDevice)
         {
-            _audioMonitorService.SetDeviceDefault();
+            var deviceDefaultResult = _audioMonitorService.SetDeviceDefault();
+            if (!deviceDefaultResult.IsSuccess)
+            {
+                // ?
+            }
 
-            var currentDeviceId = _audioMonitorService.GetCurrentDeviceId();
-            if (string.IsNullOrEmpty(currentDeviceId))
+            var currentDeviceIdResult = _audioMonitorService.GetCurrentDeviceId();
+            if (!currentDeviceIdResult.IsSuccess || currentDeviceIdResult.Value == null)
             {
                 return;
             }
-            _userSettings.CurrentDeviceId = currentDeviceId;
+
+            _userSettings.CurrentDeviceId = currentDeviceIdResult.Value;
 
             FetchCurrentAudioDeviceSettings();
         }
@@ -126,7 +130,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             FetchCurrentAudioDeviceSettings();
         }
 
-        OnAudioDevicesChanged();
+        await OnAudioDevicesChanged();
     }
 
     private void InitializeAudioMonitoring()
@@ -215,11 +219,17 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     // ? +
     private async Task OnAudioDevicesChanged()
     {
+        var deviceListResult = _audioMonitorService.GetAllDevicesName();
+        if (!deviceListResult.IsSuccess || deviceListResult.Value == null)
+        {
+            // !
+        }
+
         var deviceList = new List<string>
         {
             App.GetString(RESOURCE_KEY_DEFAULT_AUDIO_DEVICE),
         };
-        deviceList = deviceList.Concat(_audioMonitorService.GetAllDevicesName()).ToList();
+        deviceList = [.. deviceList, .. deviceListResult.Value];
 
         AudioDeviceNames = deviceList;
 
@@ -228,8 +238,17 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             await SaveUserSettings();
             SelectedAudioDevice = deviceList[0];
             _audioMonitorService.SetDeviceDefault();
-            _userSettings.CurrentDeviceId = _audioMonitorService.GetCurrentDeviceId();
             _userSettings.IsDefaultAudioDevice = true;
+
+            var currentDeviceIdResult = _audioMonitorService.GetCurrentDeviceId();
+            if (!currentDeviceIdResult.IsSuccess || currentDeviceIdResult.Value == null)
+            {
+
+            }
+            else
+            {
+                _userSettings.CurrentDeviceId = currentDeviceIdResult.Value;
+            }
         }
         else
         {
@@ -378,7 +397,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         ResetSaveDebounceTimer();
     }
 
-    // ? + !
     partial void OnSelectedAudioDeviceChanged(string value)
     {
         var defaultAudioDeviceName = App.GetString(RESOURCE_KEY_DEFAULT_AUDIO_DEVICE);
@@ -390,12 +408,27 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         else
         {
-            var newDeviceId = _audioMonitorService.NameToId(value);
-            _audioMonitorService.SetDeviceById(newDeviceId);
-            _userSettings.IsDefaultAudioDevice = false;
+            var newDeviceIdResult = _audioMonitorService.NameToId(value);
+            if (!newDeviceIdResult.IsSuccess || newDeviceIdResult.Value == null)
+            {
+
+            }
+            else
+            {
+                _audioMonitorService.SetDeviceById(newDeviceIdResult.Value);
+                _userSettings.IsDefaultAudioDevice = false;
+            }
         }
 
-        _userSettings.CurrentDeviceId = _audioMonitorService.GetCurrentDeviceId();
+        var currentDeviceIdResult = _audioMonitorService.GetCurrentDeviceId();
+        if (!currentDeviceIdResult.IsSuccess || currentDeviceIdResult.Value == null)
+        {
+            //
+        }
+        else
+        {
+            _userSettings.CurrentDeviceId = currentDeviceIdResult.Value;
+        }
 
         FetchCurrentAudioDeviceSettings();
         UpdateBindedDeviceValues();

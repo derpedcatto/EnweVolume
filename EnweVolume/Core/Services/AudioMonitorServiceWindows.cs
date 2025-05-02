@@ -114,7 +114,7 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
                         new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
                 }
 
-                return Result<string>.Success(_audioDevice.DeviceFriendlyName);
+                return Result<string>.Success(_audioDevice.FriendlyName);
             }
             catch (ObjectDisposedException ex)
             {
@@ -149,7 +149,7 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
                         new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
                 }
 
-                return Result<string>.Success(device.DeviceFriendlyName);
+                return Result<string>.Success(device.FriendlyName);
             }
             catch (Exception ex)
             {
@@ -159,9 +159,9 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
         }
     }
 
-    public Result<string> NameToId(string deviceFriendlyName)
+    public Result<string> NameToId(string friendlyName)
     {
-        if (string.IsNullOrEmpty(deviceFriendlyName))
+        if (string.IsNullOrEmpty(friendlyName))
         {
             return Result<string>.Failure(
                 new Error(ErrorType.NotFound, ErrorCode.InvalidUserSettings));
@@ -172,7 +172,7 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
             try
             {
                 var device = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                    .SingleOrDefault(a => a.FriendlyName == deviceFriendlyName);
+                    .SingleOrDefault(a => a.FriendlyName == friendlyName);
 
                 if (device == null)
                 {
@@ -180,7 +180,7 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
                         new Error(ErrorType.Failure, ErrorCode.DeviceNotFound));
                 }
 
-                return Result<string>.Success(device.DeviceFriendlyName);
+                return Result<string>.Success(device.ID);
             }
             catch (Exception ex)
             {
@@ -202,7 +202,7 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
     public Result<List<string>> GetAllDevicesName()
     {
         var list = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                       .Select(d => d.DeviceFriendlyName)
+                       .Select(d => d.FriendlyName)
                        .ToList() ?? [];
 
         return Result<List<string>>.Success(list);
