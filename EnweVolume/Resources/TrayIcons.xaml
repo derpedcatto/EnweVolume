@@ -1,0 +1,5 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <BitmapImage x:Key="green" UriSource="Resources\TrayIcons\green.ico" />
+    <BitmapImage x:Key="orange" UriSource="Resources\TrayIcons\orange.ico" />
+    <BitmapImage x:Key="red" UriSource="Resources\TrayIcons\red.ico" />
+</ResourceDictionary>

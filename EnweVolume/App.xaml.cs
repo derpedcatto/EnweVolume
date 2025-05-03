@@ -1,11 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using EnweVolume.Core.Enums;
 using EnweVolume.Core.Interfaces;
 using EnweVolume.Core.Services;
 using EnweVolume.MVVM.ViewModels;
 using EnweVolume.MVVM.Views;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
-using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace EnweVolume;
@@ -17,6 +17,12 @@ public partial class App : Application
 {
     public new static App Current => (App)Application.Current;
     public ServiceProvider Services { get; }
+    public Dictionary<VolumeLevel, Uri> DefaultIconSet { get; } = new Dictionary<VolumeLevel, Uri>
+    {
+        { VolumeLevel.Green, new Uri("Resources/TrayIcons/green.ico", UriKind.Relative) },
+        { VolumeLevel.Yellow, new Uri("Resources/TrayIcons/yellow.ico", UriKind.Relative) },
+        { VolumeLevel.Red, new Uri("Resources/TrayIcons/red.ico", UriKind.Relative) }
+    };
 
     public static string AppName { get; } = "EnweVolume";
     public static string SettingsFileName { get; } = "appsettings.json";
@@ -43,7 +49,8 @@ public partial class App : Application
         services.AddSingleton<IShowToastNotificationService, ShowToastNotificationWindows>();
         services.AddSingleton<IUserSettingsService, UserSettingsService>();
         services.AddSingleton<IAudioMonitorService, AudioMonitorServiceWindows>();
-        services.AddSingleton<ITrayIconManager, TrayIconManagerWindows>();
+        services.AddSingleton<ITrayManager, TrayManager>();
+        services.AddSingleton<IViewVisibilityService, ViewVisibilityService>();
 
         services.AddTransient<SettingsWindow>();
         services.AddTransient<SettingsViewModel>();

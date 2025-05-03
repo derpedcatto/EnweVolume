@@ -2,7 +2,7 @@
 
 namespace EnweVolume.Core.Interfaces;
 
-public interface IAudioMonitorService
+public interface IAudioMonitorService : IDisposable
 {
     public Result InitializeAudioMonitoring(int polling);
     public bool IsUsingDefaultDevice();

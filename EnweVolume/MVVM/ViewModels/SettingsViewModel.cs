@@ -6,6 +6,8 @@ using EnweVolume.Core.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Windows.Media;
 using EnweVolume.Core.Models;
+using EnweVolume.Core.Enums;
+using EnweVolume.Core.Services;
 
 namespace EnweVolume.MVVM.ViewModels;
 
@@ -19,8 +21,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly IMessenger _messenger;
     private readonly IShowToastNotificationService _showToastNotificationService;
     private readonly IAudioMonitorService _audioMonitorService;
-    private readonly ITrayIconManager _trayIconManager;
+    private readonly ITrayManager _trayManager;
     private readonly IUserSettingsService _userSettingsService;
+    private readonly IViewVisibilityService _viewVisibilityService;
 
     private UserSettings _userSettings;
     private DeviceSettings _deviceSettings;
@@ -58,14 +61,20 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         IMessenger messenger, 
         IAudioMonitorService audioMonitorService,
         IShowToastNotificationService showToastNotificationService,
-        ITrayIconManager trayIconManager,
-        IUserSettingsService userSettingsService)
+        ITrayManager trayManager,
+        IUserSettingsService userSettingsService,
+        IViewVisibilityService viewVisibilityService)
     {
         _messenger = messenger;
         _showToastNotificationService = showToastNotificationService;
         _audioMonitorService = audioMonitorService;
-        _trayIconManager = trayIconManager;
+        _trayManager = trayManager;
         _userSettingsService = userSettingsService;
+        _viewVisibilityService = viewVisibilityService;
+
+        _trayManager.TrayIconLeftClicked += OnTrayLeftClick;
+        _trayManager.ExitRequested += OnExitRequested;
+        _trayManager.StartWithSystemToggled += OnStartWithSystemToggled;
 
         VolumeBarSizeChangedCommand = new RelayCommand<double>(OnProgressBarSizeChanged);
         DeviceListChangedAction = async () => await OnAudioDevicesChanged();
@@ -79,6 +88,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         await InitializeUserSettings();
         await InitializeDeviceSettings();
         InitializeLocale();
+        InitializeTray();
         InitializeAudioMonitoring();
     }
 
@@ -176,9 +186,19 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         OnSelectedLocaleChanged(SelectedLocale);
     }
 
+    private void InitializeTray()
+    {
+        var result = _trayManager.Initialize(App.Current.DefaultIconSet, _userSettings.LaunchOnStartup);
+        if (!result.IsSuccess)
+        {
+
+        }
+
+        UpdateTrayTooltip();
+    }
+
     #endregion
 
-    // ? +
     private async Task SaveUserSettings()
     {
         try
@@ -202,7 +222,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _saveDebounceTimer.Start();
     }
 
-    // ? +
     private void FetchCurrentAudioDeviceSettings()
     {
         var deviceId = _userSettings.CurrentDeviceId;
@@ -215,8 +234,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     }
 
     private void OnAudioLevelChanged(float newLevel) => _latestAudioLevel = newLevel;
-    
-    // ? +
+
     private async Task OnAudioDevicesChanged()
     {
         var deviceListResult = _audioMonitorService.GetAllDevicesName();
@@ -259,6 +277,61 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         UpdateBindedDeviceValues();
         ResetSaveDebounceTimer();
     }
+
+    private VolumeLevel GetCurrentVolumeLevel()
+    {
+        var volume = _latestAudioLevel * 100;
+        if (volume <= _deviceSettings.YellowThresholdVolume && _deviceSettings.IsYellowThresholdEnabled)
+        {
+            return VolumeLevel.Green;
+        }
+        else if (volume <= _deviceSettings.RedThresholdVolume)
+        {
+            return VolumeLevel.Yellow;
+        }
+        else
+        {
+            return VolumeLevel.Red;
+        }
+    }
+
+    #region Tray
+
+    private void UpdateTrayIcon()
+    {
+        var level = GetCurrentVolumeLevel();
+        _trayManager.SetIcon(level);
+    }
+
+    private void UpdateTrayTooltip()
+    {
+        var tooltipData = new TrayIconTooltipData
+        {
+            DeviceName = SelectedAudioDevice
+        };
+        _trayManager.SetIconTooltip(tooltipData);
+    }
+
+    private void OnStartWithSystemToggled(object? sender, bool isEnabled)
+    {
+        if (LaunchOnStartup != isEnabled)
+        {
+            LaunchOnStartup = isEnabled;
+        }
+    }
+
+    private void OnTrayLeftClick(object? sender, EventArgs e)
+    {
+        _viewVisibilityService.ToggleMainWindowVisibility();
+    }
+
+    private void OnExitRequested(object? sender, EventArgs e)
+    {
+        Dispose();
+        Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
+    }
+
+    #endregion
 
     #region UI
 
@@ -433,9 +506,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         FetchCurrentAudioDeviceSettings();
         UpdateBindedDeviceValues();
         ResetSaveDebounceTimer();
+
+        UpdateTrayTooltip();
     }
 
-    // ? +
     partial void OnSelectedLocaleChanged(string value)
     {
         var selectedCulture = App.SupportedCultures.FirstOrDefault(c => c.NativeName == value);
@@ -458,9 +532,11 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         ResetSaveDebounceTimer();
     }
 
+    // IStartupManager
     partial void OnLaunchOnStartupChanged(bool value) 
     {
         _userSettings.LaunchOnStartup = value;
+        _trayManager.SetStartWithSystemChecked(value);
         ResetSaveDebounceTimer();
     }
 
@@ -474,12 +550,21 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        if (_trayManager != null)
+        {
+            _trayManager.TrayIconLeftClicked -= OnTrayLeftClick;
+            _trayManager.ExitRequested -= OnExitRequested;
+            _trayManager.StartWithSystemToggled -= OnStartWithSystemToggled;
+            _trayManager.Dispose();
+        }
+
         _audioMonitorService.VolumeLevelChanged -= OnAudioLevelChanged;
         _audioMonitorService.DeviceListChanged -= DeviceListChangedAction;
+        _audioMonitorService.Dispose();
 
         _uiUpdateTimer?.Stop();
+        _saveDebounceTimer?.Stop();
 
-        _saveDebounceTimer.Stop();
-        _ = SaveUserSettings().ConfigureAwait(false);
+        Task.Run(async () => await SaveUserSettings()).Wait();
     }
 }
