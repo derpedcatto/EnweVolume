@@ -11,17 +11,8 @@ public class Result
         Error = error;
     }
 
-    public static Result Success() => new Result(true);
-
-    public static Result Failure(Error error) => new Result(false, error);
-
-    public void Match(Action onSuccess, Action<Error> onFailure)
-    {
-        if (IsSuccess)
-            onSuccess();
-        else
-            onFailure(Error!);
-    }
+    public static Result Success() => new(true);
+    public static Result Failure(Error error) => new(false, error);
 }
 
 public class Result<T> : Result
@@ -34,23 +25,6 @@ public class Result<T> : Result
         Value = value;
     }
 
-    public static Result<T> Success(T value) => new Result<T>(true, value);
-
-    public static new Result<T> Failure(Error error)
-        => new Result<T>(false, value: default, error);
-
-    public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<Error, TResult> onFailure)
-    {
-        return IsSuccess ? onSuccess(Value!) : onFailure(Error!);
-    }
-
-    public Result<TResult> Bind<TResult>(Func<T, Result<TResult>> func)
-    {
-        return IsSuccess ? func(Value!) : Result<TResult>.Failure(Error!);
-    }
-
-    public Result<TResult> Map<TResult>(Func<T, TResult> mapper)
-    {
-        return IsSuccess ? Result<TResult>.Success(mapper(Value!)) : Result<TResult>.Failure(Error!);
-    }
+    public static Result<T> Success(T value) => new(true, value);
+    public static new Result<T> Failure(Error error) => new(false, default, error);
 }
