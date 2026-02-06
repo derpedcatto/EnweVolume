@@ -26,6 +26,24 @@
     <system:String x:Key="Label_AppLocale">App Locale</system:String>
     <system:String x:Key="Label_ThemeSoundSettings">Theme / Sound Settings</system:String>
 
+    <!--  Error Messages  -->
+    <system:String x:Key="Error_Unknown">An unknown error occurred.</system:String>
+    <!--  Error Messages: Validation  -->
+    <system:String x:Key="Error_InvalidUserSettings">Invalid user settings.</system:String>
+    <!--  Error Messages: IO  -->
+    <system:String x:Key="Error_UserSettingsSaveError">Failed to save user settings.</system:String>
+    <system:String x:Key="Error_UserSettingsLoadError">Failed to load user settings.</system:String>
+    <system:String x:Key="Error_SettingsFileCorrupted">Settings file is corrupted.</system:String>
+    <system:String x:Key="Error_SettingsFileLockError">Settings file is locked by another process.</system:String>
+    <system:String x:Key="Error_SettingsDirectoryAccessError">Cannot access settings directory.</system:String>
+    <!--  Error Messages: Device  -->
+    <system:String x:Key="Error_DeviceNotFound">Audio device not found.</system:String>
+    <system:String x:Key="Error_DeviceAccessDenied">Access to audio device denied.</system:String>
+    <system:String x:Key="Error_DeviceDisposed">Audio device has been disposed.</system:String>
+    <!--  Error Messages: Runtime  -->
+    <system:String x:Key="Error_OperationCanceled">Operation was cancelled.</system:String>
+    <system:String x:Key="Error_PermissionDenied">Permission denied.</system:String>
+
     <!--  Other  -->
     <system:String x:Key="String_DefaultAudioDevice">Default Audio Device</system:String>
 </ResourceDictionary>
