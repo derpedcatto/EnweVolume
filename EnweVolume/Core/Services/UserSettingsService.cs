@@ -37,7 +37,7 @@ public class UserSettingsService : IUserSettingsService
                 var generateResult = await GenerateSettings();
                 if (!generateResult.IsSuccess)
                 {
-                    return Result<UserSettings>.Failure(generateResult.Error!);
+                    return Result<UserSettings>.Failure(generateResult.Error);
                 }
             }
 
@@ -162,7 +162,7 @@ public class UserSettingsService : IUserSettingsService
             if (!regenerateResult.IsSuccess)
             {
                 var error = Error.From(
-                    regenerateResult.Error!.Code,
+                    regenerateResult.Error.Code,
                     regenerateResult.Error.Message + (" | " + ex.Message));
 
                 return Result<UserSettings>.Failure(error);
