@@ -1,30 +1,25 @@
-﻿namespace EnweVolume.Core.Models;
+﻿using System.Diagnostics.CodeAnalysis;
 
-public class Result
+namespace EnweVolume.Core.Models;
+
+public sealed class Result<T, TError>
 {
-    public bool IsSuccess { get; }
-    public Error? Error { get; }
+    [MemberNotNullWhen(true, nameof(Value))]
+    [MemberNotNullWhen(false, nameof(Error))]
+    public bool IsSuccess { get; set; }
 
-    protected Result(bool isSuccess, Error? error = null)
-    {
-        IsSuccess = isSuccess;
-        Error = error;
-    }
-
-    public static Result Success() => new(true);
-    public static Result Failure(Error error) => new(false, error);
-}
-
-public class Result<T> : Result
-{
     public T? Value { get; }
+    public TError? Error { get; }
 
-    protected Result(bool isSuccess, T? value, Error? error = null)
-        : base(isSuccess, error)
-    {
-        Value = value;
-    }
+    private Result(bool isSuccess, T? value, TError? error) =>
+        (IsSuccess, Value, Error) = (isSuccess, value, error);
 
-    public static Result<T> Success(T value) => new(true, value);
-    public static new Result<T> Failure(Error error) => new(false, default, error);
+    public static Result<T, TError> Success(T value) =>
+        new(true, value, default);
+
+    public static Result<T, TError> Failure(TError error) =>
+        new(false, default, error);
+
+    public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<TError, TResult> onFailure)
+        => IsSuccess ? onSuccess(Value) : onFailure(Error);
 }
