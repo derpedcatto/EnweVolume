@@ -5,20 +5,21 @@ public enum ErrorCode
     Unknown = 0,
 
     // Validation
-    InvalidUserSettings = 100,
+    InvalidUserSettings,
 
     // IO
-    UserSettingsSaveError = 200,
-    UserSettingsLoadError = 201,
-    SettingsFileCorrupted = 202,
-    SettingsFileLockError = 203,
+    UserSettingsSaveError,
+    UserSettingsLoadError,
+    SettingsFileCorrupted,
+    SettingsFileLockError,
+    SettingsDirectoryAccessError,
 
     // Device
-    DeviceNotFound = 300,
-    DeviceAccessDenied = 301,
-    DeviceDisposed = 302,
+    DeviceNotFound,
+    DeviceAccessDenied,
+    DeviceDisposed,
 
-    // Access
-    AccessDenied = 400,
-    SettingsDirectoryAccessError = 401,
+    // Runtime
+    OperationCanceled,
+    PermissionDenied,
 }

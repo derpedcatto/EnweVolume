@@ -29,6 +29,7 @@ public class UserSettingsService : IUserSettingsService
     public async Task<Result<UserSettings>> GetSettings()
     {
         await _fileLock.WaitAsync();
+
         try
         {
             if (!File.Exists(_settingsFilePath))
@@ -36,18 +37,24 @@ public class UserSettingsService : IUserSettingsService
                 var generateResult = await GenerateSettings();
                 if (!generateResult.IsSuccess)
                 {
-                    return Result<UserSettings>.Failure(generateResult.Error);
+                    return Result<UserSettings>.Failure(generateResult.Error!);
                 }
             }
 
             return await DeserializeSettingsFile();
         }
-        catch (UnauthorizedAccessException uaEx)
+        catch (UnauthorizedAccessException ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.AccessForbidden,
-                ErrorCode.AccessDenied,
-                $"Unauthorized permission error: {uaEx.Message}"
+            return Result<UserSettings>.Failure(Error.From(
+                ErrorCode.SettingsDirectoryAccessError,
+                ex.Message
+            ));
+        }
+        catch (Exception ex)
+        {
+            return Result<UserSettings>.Failure(Error.From(
+                ErrorCode.Unknown,
+                ex.Message
             ));
         }
         finally
@@ -61,11 +68,13 @@ public class UserSettingsService : IUserSettingsService
         if (userSettings == null)
         {
             return Result.Failure(
-                new Error(ErrorType.Validation, ErrorCode.InvalidUserSettings, "Settings object is null."));
+                Error.From(ErrorCode.InvalidUserSettings, "Settings object is null.")
+            );
         }
 
         await _fileLock.WaitAsync();
         string tempFilePath = string.Empty;
+
         try
         {
             Directory.CreateDirectory(_settingsFolderPath);
@@ -77,51 +86,52 @@ public class UserSettingsService : IUserSettingsService
             }
 
             if (File.Exists(_settingsFilePath))
+            {
                 File.Replace(tempFilePath, _settingsFilePath, null);
+            }
             else
+            { 
                 File.Move(tempFilePath, _settingsFilePath);
+            }
 
             return Result.Success();
         }
-        catch (JsonException jsonEx)
+        catch (JsonException ex)
         {
-            return Result.Failure(new Error(
-                ErrorType.Failure,
-                ErrorCode.UserSettingsSaveError,
-                $"Json error: {jsonEx.Message}"
-            ));
-        }
-        catch (UnauthorizedAccessException uaEx)
-        {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.AccessForbidden,
-                ErrorCode.SettingsDirectoryAccessError,
-                $"Unauthorized permission error: {uaEx.Message}"
-            ));
-        }
-        catch (IOException ioEx)
-        {
-            return Result.Failure(new Error(
-                ErrorType.Failure,
-                ErrorCode.UserSettingsSaveError,
-                $"I/O error: {ioEx.Message}"
-            ));
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(new Error(
-                ErrorType.Failure,
+            return Result.Failure(Error.From(
                 ErrorCode.UserSettingsSaveError,
                 ex.Message
             ));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Result<UserSettings>.Failure(Error.From(
+                ErrorCode.SettingsDirectoryAccessError,
+                ex.Message
+            ));
+        }
+        catch (IOException ex)
+        {
+            return Result.Failure(Error.From(
+                ErrorCode.UserSettingsSaveError,
+                ex.Message
+            ));
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(Error.From(
+                ErrorCode.UserSettingsSaveError,
+                ex.Message
+            ));
+        }   
         finally
         {
-            if (tempFilePath != null && File.Exists(tempFilePath))
+            if (!string.IsNullOrEmpty(tempFilePath) && File.Exists(tempFilePath))
             {
                 try { File.Delete(tempFilePath); }
                 catch { }
             }
+
             _fileLock.Release();
         }
     }
@@ -133,31 +143,9 @@ public class UserSettingsService : IUserSettingsService
                 .Find(c => c.Name == systemCulture.Name)
                 ?? App.SupportedCultures[0];
 
-        return new UserSettings()
+        return new UserSettings
         {
-            DeviceProfiles = [],
-            CurrentDeviceId = string.Empty,
-            IsDefaultAudioDevice = true,
-            Theme = App.DefaultThemeName,
-            IsProgressBarColorChangeEnabled = true,
-            LaunchOnStartup = true,
-            SelectedLocale = appCulture.Name
-        };
-    }
-
-    public DeviceSettings GetDefaultDeviceSettings(string deviceId)
-    {
-        return new DeviceSettings()
-        {
-            RedThresholdVolume = 80,
-            YellowThresholdVolume = 65,
-            IsYellowThresholdEnabled = false,
-            IsRedPushNotificationEnabled = true,
-            IsRedSoundNotificationEnabled = false,
-            RedSoundNotificationVolume = 50,
-            IsYellowPushNotificationEnabled = false,
-            IsYellowSoundNotificationEnabled = false,
-            YellowSoundNotificationVolume = 50,
+            SelectedLocale = appCulture.Name,
         };
     }
 
@@ -167,7 +155,7 @@ public class UserSettingsService : IUserSettingsService
         {
             using FileStream openStream = File.OpenRead(_settingsFilePath);
             var settings = await JsonSerializer.DeserializeAsync<UserSettings>(openStream)
-                ?? throw new JsonException("Deserialized to null");
+                ?? throw new JsonException("Deserialized UserSettings to null");
 
             var defaultSettings = GetDefaultUserSettings();
             var validatedSettings = ValidateSettings(settings);
@@ -179,17 +167,17 @@ public class UserSettingsService : IUserSettingsService
 
             return Result<UserSettings>.Success(settings);
         }
-        catch (JsonException jsonEx)
+        catch (JsonException ex)
         {
             // Try to regenerate file
             File.Delete(_settingsFilePath); 
             var regenerateResult = await GenerateSettings();
+
             if (!regenerateResult.IsSuccess)
             {
-                var error = new Error(
-                    regenerateResult.Error.ErrorType,
-                    regenerateResult.Error.Code,
-                    regenerateResult.Error.DebugDescription + (" | " + jsonEx.Message));
+                var error = Error.From(
+                    regenerateResult.Error!.Code,
+                    regenerateResult.Error.Message + (" | " + ex.Message));
 
                 return Result<UserSettings>.Failure(error);
             }
@@ -197,26 +185,23 @@ public class UserSettingsService : IUserSettingsService
             // Recurse once
             return await DeserializeSettingsFile();
         }
-        catch (IOException ioEx)
+        catch (IOException ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                    ErrorType.Failure,
+            return Result<UserSettings>.Failure(Error.From(
                     ErrorCode.UserSettingsLoadError,
-                    ioEx.Message
+                    ex.Message
                 ));
         }
-        catch (UnauthorizedAccessException uaEx)
+        catch (UnauthorizedAccessException ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.AccessForbidden,
-                ErrorCode.AccessDenied,
-                $"Unauthorized permission error: {uaEx.Message}"
+            return Result<UserSettings>.Failure(Error.From(
+                ErrorCode.SettingsDirectoryAccessError,
+                ex.Message
             ));
         }
         catch (Exception ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.Failure, 
+            return Result<UserSettings>.Failure(Error.From(
                 ErrorCode.UserSettingsLoadError,
                 ex.Message
             ));
@@ -237,43 +222,39 @@ public class UserSettingsService : IUserSettingsService
 
             return Result.Success();
         }
-        catch (JsonException jsonEx)
+        catch (JsonException ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.Failure,
+            return Result<UserSettings>.Failure(Error.From(
                 ErrorCode.UserSettingsSaveError,
-                $"Json error: {jsonEx.Message}"
+                ex.Message
             ));
         }
-        catch (IOException ioEx)
+        catch (IOException ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.Failure,
+            return Result<UserSettings>.Failure(Error.From(
                 ErrorCode.UserSettingsSaveError,
-                $"IO error: {ioEx.Message}"
+                ex.Message
             ));
         }
-        catch (UnauthorizedAccessException uaEx)
+        catch (UnauthorizedAccessException ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.AccessForbidden,
-                ErrorCode.AccessDenied,
-                $"Unauthorized permission error: {uaEx.Message}"
+            return Result<UserSettings>.Failure(Error.From(
+                ErrorCode.SettingsDirectoryAccessError,
+                ex.Message
             ));
         }
         catch (Exception ex)
         {
-            return Result<UserSettings>.Failure(new Error(
-                ErrorType.Failure,
+            return Result<UserSettings>.Failure(Error.From(
                 ErrorCode.UserSettingsSaveError,
-                $"{ex.Message}"
+                ex.Message
             ));
         }
     }
 
     private UserSettings ValidateSettings(UserSettings settings)
     {
-        var defaultSettings = GetDefaultDeviceSettings(string.Empty);
+        var defaultSettings = new DeviceSettings();
 
         foreach (var device in settings.DeviceProfiles.Values)
         {
