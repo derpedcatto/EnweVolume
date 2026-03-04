@@ -96,24 +96,10 @@ public class UserSettingsService : IUserSettingsService
 
             return Result.Success();
         }
-        catch (JsonException ex)
-        {
-            return Result.Failure(Error.From(
-                ErrorCode.UserSettingsSaveError,
-                ex.Message
-            ));
-        }
         catch (UnauthorizedAccessException ex)
         {
-            return Result<UserSettings>.Failure(Error.From(
-                ErrorCode.SettingsDirectoryAccessError,
-                ex.Message
-            ));
-        }
-        catch (IOException ex)
-        {
             return Result.Failure(Error.From(
-                ErrorCode.UserSettingsSaveError,
+                ErrorCode.SettingsDirectoryAccessError,
                 ex.Message
             ));
         }
@@ -123,7 +109,7 @@ public class UserSettingsService : IUserSettingsService
                 ErrorCode.UserSettingsSaveError,
                 ex.Message
             ));
-        }   
+        }       
         finally
         {
             if (!string.IsNullOrEmpty(tempFilePath) && File.Exists(tempFilePath))
@@ -185,13 +171,6 @@ public class UserSettingsService : IUserSettingsService
             // Recurse once
             return await DeserializeSettingsFile();
         }
-        catch (IOException ex)
-        {
-            return Result<UserSettings>.Failure(Error.From(
-                    ErrorCode.UserSettingsLoadError,
-                    ex.Message
-                ));
-        }
         catch (UnauthorizedAccessException ex)
         {
             return Result<UserSettings>.Failure(Error.From(
@@ -222,30 +201,16 @@ public class UserSettingsService : IUserSettingsService
 
             return Result.Success();
         }
-        catch (JsonException ex)
-        {
-            return Result<UserSettings>.Failure(Error.From(
-                ErrorCode.UserSettingsSaveError,
-                ex.Message
-            ));
-        }
-        catch (IOException ex)
-        {
-            return Result<UserSettings>.Failure(Error.From(
-                ErrorCode.UserSettingsSaveError,
-                ex.Message
-            ));
-        }
         catch (UnauthorizedAccessException ex)
         {
-            return Result<UserSettings>.Failure(Error.From(
+            return Result.Failure(Error.From(
                 ErrorCode.SettingsDirectoryAccessError,
                 ex.Message
             ));
         }
         catch (Exception ex)
         {
-            return Result<UserSettings>.Failure(Error.From(
+            return Result.Failure(Error.From(
                 ErrorCode.UserSettingsSaveError,
                 ex.Message
             ));
