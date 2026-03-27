@@ -39,7 +39,7 @@ public class AudioMonitorServiceWindows : IAudioMonitorService, IDisposable, IMM
                 return Result.Failure(result.Error);
             }
         }
-        else // ?
+        else
         {
             var result = SetDeviceById(_audioDevice.ID);
             if (!result.IsSuccess)

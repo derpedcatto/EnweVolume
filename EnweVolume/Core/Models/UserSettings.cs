@@ -2,12 +2,12 @@
 
 public class UserSettings
 {
-    public Dictionary<string, DeviceSettings> DeviceProfiles { get; set; } = new();
+    public Dictionary<string, DeviceSettings> DeviceProfiles { get; set; } = [];
     public string CurrentDeviceId { get; set; } = string.Empty;
-    public bool IsDefaultAudioDevice { get; set; }
-    public bool IsProgressBarColorChangeEnabled { get; set; }
-    public bool LaunchOnStartup { get; set; }
-    public string Theme { get; set; } = string.Empty;
+    public bool IsDefaultAudioDevice { get; set; } = true;
+    public bool IsProgressBarColorChangeEnabled { get; set; } = true;
+    public bool LaunchOnStartup { get; set; } = true;
+    public string Theme { get; set; } = App.DefaultThemeName;
     public string SelectedLocale { get; set; } = string.Empty;
 
     public override bool Equals(object? obj)

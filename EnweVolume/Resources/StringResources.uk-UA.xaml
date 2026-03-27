@@ -26,6 +26,24 @@
     <system:String x:Key="Label_AppLocale">Мова додатку</system:String>
     <system:String x:Key="Label_ThemeSoundSettings">Налаштування теми / звуку</system:String>
 
+    <!--  Error Messages  -->
+    <system:String x:Key="Error_Unknown">Сталася невідома помилка.</system:String>
+    <!--  Error Messages: Validation  -->
+    <system:String x:Key="Error_InvalidUserSettings">Некоректні налаштування користувача.</system:String>
+    <!--  Error Messages: IO  -->
+    <system:String x:Key="Error_UserSettingsSaveError">Не вдалося зберегти налаштування користувача.</system:String>
+    <system:String x:Key="Error_UserSettingsLoadError">Не вдалося завантажити налаштування користувача.</system:String>
+    <system:String x:Key="Error_SettingsFileCorrupted">Файл налаштувань пошкоджено.</system:String>
+    <system:String x:Key="Error_SettingsFileLockError">Файл налаштувань заблоковано іншим процесом.</system:String>
+    <system:String x:Key="Error_SettingsDirectoryAccessError">Не вдається отримати доступ до каталогу налаштувань.</system:String>
+    <!--  Error Messages: Device  -->
+    <system:String x:Key="Error_DeviceNotFound">Аудіопристрій не знайдено.</system:String>
+    <system:String x:Key="Error_DeviceAccessDenied">Доступ до аудіопристрою заборонено.</system:String>
+    <system:String x:Key="Error_DeviceDisposed">Ресурс аудіопристрою було вивільнено.</system:String>
+    <!--  Error Messages: Runtime  -->
+    <system:String x:Key="Error_OperationCanceled">Операцію скасовано.</system:String>
+    <system:String x:Key="Error_PermissionDenied">У доступі відмовлено.</system:String>
+
     <!--  Other  -->
     <system:String x:Key="String_DefaultAudioDevice">За замовчуванням</system:String>
 </ResourceDictionary>

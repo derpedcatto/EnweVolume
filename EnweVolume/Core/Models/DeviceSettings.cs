@@ -2,15 +2,15 @@
 
 public class DeviceSettings
 {
-    public int RedThresholdVolume { get; set; }
-    public int YellowThresholdVolume { get; set; }
-    public bool IsYellowThresholdEnabled { get; set; }
-    public bool IsRedPushNotificationEnabled { get; set; }
-    public bool IsRedSoundNotificationEnabled { get; set; }
-    public int RedSoundNotificationVolume { get; set; }
-    public bool IsYellowPushNotificationEnabled { get; set; }
-    public bool IsYellowSoundNotificationEnabled { get; set; }
-    public int YellowSoundNotificationVolume { get; set; }
+    public int RedThresholdVolume { get; set; } = 80;
+    public int YellowThresholdVolume { get; set; } = 65;
+    public bool IsYellowThresholdEnabled { get; set; } = false;
+    public bool IsRedPushNotificationEnabled { get; set; } = true;
+    public bool IsRedSoundNotificationEnabled { get; set; } = false;
+    public int RedSoundNotificationVolume { get; set; } = 50;
+    public bool IsYellowPushNotificationEnabled { get; set; } = false;
+    public bool IsYellowSoundNotificationEnabled { get; set; } = false;
+    public int YellowSoundNotificationVolume { get; set; } = 50;
 
     public override bool Equals(object? obj)
     {

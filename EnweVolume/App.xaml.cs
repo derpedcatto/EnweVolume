@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using EnweVolume.Core.Enums;
 using EnweVolume.Core.Interfaces;
 using EnweVolume.Core.Services;
 using EnweVolume.MVVM.ViewModels;
@@ -88,5 +89,18 @@ public partial class App : Application
         }
 
         return string.Empty;
+    }
+
+    public static string GetErrorMessageByCode(ErrorCode errorCode)
+    {
+        string key = $"Error_{errorCode}";
+        string message = GetString(key);
+
+        if (string.IsNullOrEmpty(message))
+        {
+            return errorCode.ToString();
+        }
+
+        return message;
     }
 }

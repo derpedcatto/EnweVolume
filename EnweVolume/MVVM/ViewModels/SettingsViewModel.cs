@@ -209,7 +209,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _userSettings.DeviceProfiles.TryGetValue(deviceId, out _deviceSettings!);
         if (_deviceSettings == null)
         {
-            _deviceSettings = _userSettingsService.GetDefaultDeviceSettings(deviceId);
+            _deviceSettings = new DeviceSettings();
             _userSettings.DeviceProfiles.Add(deviceId, _deviceSettings);
         }
     }

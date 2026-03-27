@@ -26,6 +26,24 @@
     <system:String x:Key="Label_AppLocale">Язык приложения</system:String>
     <system:String x:Key="Label_ThemeSoundSettings">Настройки темы / звука</system:String>
 
+    <!--  Error Messages  -->
+    <system:String x:Key="Error_Unknown">Произошла неизвестная ошибка.</system:String>
+    <!--  Error Messages: Validation  -->
+    <system:String x:Key="Error_InvalidUserSettings">Некорректные настройки пользователя.</system:String>
+    <!--  Error Messages: IO  -->
+    <system:String x:Key="Error_UserSettingsSaveError">Не удалось сохранить настройки пользователя.</system:String>
+    <system:String x:Key="Error_UserSettingsLoadError">Не удалось загрузить настройки пользователя.</system:String>
+    <system:String x:Key="Error_SettingsFileCorrupted">Файл настроек поврежден.</system:String>
+    <system:String x:Key="Error_SettingsFileLockError">Файл настроек заблокирован другим процессом.</system:String>
+    <system:String x:Key="Error_SettingsDirectoryAccessError">Не удалось получить доступ к каталогу настроек.</system:String>
+    <!--  Error Messages: Device  -->
+    <system:String x:Key="Error_DeviceNotFound">Аудиоустройство не найдено.</system:String>
+    <system:String x:Key="Error_DeviceAccessDenied">Доступ к аудиоустройству запрещен.</system:String>
+    <system:String x:Key="Error_DeviceDisposed">Аудиоустройство было освобождено.</system:String>
+    <!--  Error Messages: Runtime  -->
+    <system:String x:Key="Error_OperationCanceled">Операция была отменена.</system:String>
+    <system:String x:Key="Error_PermissionDenied">Отказано в доступе.</system:String>
+
     <!--  Other  -->
     <system:String x:Key="String_DefaultAudioDevice">По умолчанию</system:String>
 </ResourceDictionary>
